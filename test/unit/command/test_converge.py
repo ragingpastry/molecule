@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -21,8 +21,11 @@
 from molecule.command import converge
 
 
+# NOTE(retr0h): The use of the `patched_config_validate` fixture, disables
+# config.Config._validate from executing.  Thus preventing odd side-effects
+# throughout patched.assert_called unit tests.
 def test_execute(mocker, patched_logger_info, patched_ansible_converge,
-                 config_instance):
+                 patched_config_validate, config_instance):
     c = converge.Converge(config_instance)
     c.execute()
 

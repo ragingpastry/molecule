@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -20,6 +20,7 @@
 
 import os
 
+from molecule import config
 from molecule import interpolation
 from molecule import util
 
@@ -34,8 +35,12 @@ def from_yaml(data):
 
     :return: dict
     """
-    i = interpolation.Interpolator(interpolation.TemplateWithDefaults,
-                                   os.environ)
+    molecule_env_file = os.environ['MOLECULE_ENV_FILE']
+
+    env = os.environ.copy()
+    env = config.set_env_from_file(env, molecule_env_file)
+
+    i = interpolation.Interpolator(interpolation.TemplateWithDefaults, env)
     interpolated_data = i.interpolate(data)
 
     return util.safe_load(interpolated_data)
@@ -49,6 +54,17 @@ def header(content):
     return util.molecule_prepender(content)
 
 
+def get_docker_networks(data):
+    network_list = []
+    for platform in data:
+        if "networks" in platform:
+            for network in platform['networks']:
+                if "name" in network:
+                    name = network['name']
+                    network_list.append(name)
+    return network_list
+
+
 class FilterModule(object):
     """ Core Molecule filter plugins. """
 
@@ -57,4 +73,5 @@ class FilterModule(object):
             'molecule_from_yaml': from_yaml,
             'molecule_to_yaml': to_yaml,
             'molecule_header': header,
+            'molecule_get_docker_networks': get_docker_networks,
         }

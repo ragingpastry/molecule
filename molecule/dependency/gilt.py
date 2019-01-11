@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -66,7 +66,9 @@ class Gilt(base.Base):
 
     def __init__(self, config):
         super(Gilt, self).__init__(config)
-        self._gilt_command = None
+        self._sh_command = None
+
+        self.command = 'gilt'
 
     @property
     def default_options(self):
@@ -79,7 +81,7 @@ class Gilt(base.Base):
 
     @property
     def default_env(self):
-        return self._config.merge_dicts(os.environ.copy(), self._config.env)
+        return util.merge_dicts(os.environ.copy(), self._config.env)
 
     def bake(self):
         """
@@ -87,7 +89,8 @@ class Gilt(base.Base):
 
         :return: None
         """
-        self._gilt_command = sh.gilt.bake(
+        self._sh_command = getattr(sh, self.command)
+        self._sh_command = self._sh_command.bake(
             self.options,
             'overlay',
             _env=self.env,
@@ -105,17 +108,18 @@ class Gilt(base.Base):
             LOG.warn(msg)
             return
 
-        if self._gilt_command is None:
+        if self._sh_command is None:
             self.bake()
 
         try:
-            util.run_command(self._gilt_command, debug=self._config.debug)
+            util.run_command(self._sh_command, debug=self._config.debug)
             msg = 'Dependency completed successfully.'
             LOG.success(msg)
         except sh.ErrorReturnCode as e:
             util.sysexit(e.exit_code)
 
-    def _has_requirements_file(self):
-        config_file = self.options.get('config')
+    def _config_file(self):
+        return self.options.get('config')
 
-        return config_file and os.path.isfile(config_file)
+    def _has_requirements_file(self):
+        return os.path.isfile(self._config_file())

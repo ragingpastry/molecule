@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -26,12 +26,14 @@ import os
 import re
 import sys
 
+import anyconfig
 import colorama
 import yaml
 
 from molecule import logger
 
 LOG = logger.get_logger(__name__)
+MERGE_STRATEGY = anyconfig.MS_DICTS
 
 colorama.init(autoreset=True)
 
@@ -172,7 +174,10 @@ def safe_load(string):
     :param string: A string to be parsed.
     :return: dict
     """
-    return yaml.safe_load(string) or {}
+    try:
+        return yaml.safe_load(string) or {}
+    except yaml.scanner.ScannerError as e:
+        sysexit_with_message(str(e))
 
 
 def safe_load_file(filename):
@@ -209,7 +214,7 @@ def strip_ansi_escape(string):
 
 def strip_ansi_color(s):
     # Taken from tabulate
-    invisible_codes = re.compile('\x1b\[\d*m')
+    invisible_codes = re.compile(r'\x1b\[\d*m')
 
     return re.sub(invisible_codes, '', s)
 
@@ -229,17 +234,17 @@ def verbose_flag(options):
     return verbose_flag
 
 
+def filter_verbose_permutation(options):
+    return {k: options[k] for k in options if not re.match('^[v]+$', k)}
+
+
 def title(word):
     return ' '.join(x.capitalize() or '_' for x in word.split('_'))
 
 
-def exit_with_invalid_section(section, name):
-    msg = "Invalid {} named '{}' configured.".format(section, name)
-    sysexit_with_message(msg)
-
-
 def abs_path(path):
-    return os.path.abspath(path)
+    if path:
+        return os.path.abspath(path)
 
 
 def camelize(string):
@@ -256,3 +261,54 @@ def underscore(string):
     string = string.replace("-", "_")
 
     return string.lower()
+
+
+def merge_dicts(a, b):
+    """
+    Merges the values of B into A and returns a mutated dict A.
+
+    ::
+
+        dict a
+
+        b:
+           - c: 0
+           - c: 2
+        d:
+           e: "aaa"
+           f: 3
+
+        dict b
+
+        a: 1
+        b:
+           - c: 3
+        d:
+           e: "bbb"
+
+    Will give an object such as::
+
+        {'a': 1, 'b': [{'c': 3}], 'd': {'e': "bbb", 'f': 3}}
+
+
+    :param a: the target dictionary
+    :param b: the dictionary to import
+    :return: dict
+    """
+    anyconfig.merge(a, b, ac_merge=MERGE_STRATEGY)
+
+    return a
+
+
+def memoize(function):
+    memo = {}
+
+    def wrapper(*args, **kwargs):
+        if args not in memo:
+            rv = function(*args, **kwargs)
+            memo[args] = rv
+
+            return rv
+        return memo[args]
+
+    return wrapper

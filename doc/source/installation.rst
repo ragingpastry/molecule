@@ -12,10 +12,11 @@ Requirements
 ============
 
 Depending on the driver chosen, you may need to install additional OS packages.
-See `INSTALL.rst`, which is created when initializing a new scenario.
+See ``INSTALL.rst``, which is created when initializing a new scenario.
 
-* Ansible >= 2.2
+* :std:doc:`Ansible <ansible:index>` >= 2.4
 * Python 2.7
+* Python >= 3.6 with Ansible >= 2.4
 
 CentOS 7
 --------
@@ -23,7 +24,7 @@ CentOS 7
 .. code-block:: bash
 
     $ sudo yum install -y epel-release
-    $ sudo yum install -y gcc python-pip python-devel openssl-devel
+    $ sudo yum install -y gcc python-pip python-devel openssl-devel libselinux-python
 
 Ubuntu 16.x
 -----------
@@ -36,7 +37,7 @@ Ubuntu 16.x
 Pip
 ===
 
-Pip is the only supported installation method.
+:std:doc:`pip <pip:usage>` is the only supported installation method.
 
 Requirements
 ------------
@@ -52,7 +53,16 @@ Install Molecule:
 
 .. code-block:: bash
 
-    $ sudo pip install molecule
+    $ pip install --user molecule
+
+Installing molecule package also installed its main script ``molecule``,
+usually in ``PATH``. Users should know that molecule can also be called as a
+python module, using ``python -m molecule ...``. This alternative method has
+some benefits:
+
+* allows to explicitly control which python interpreter is used by molecule
+* allows molecule installation at user level without even needing to have
+  the script in ``PATH``.
 
 Source
 ======

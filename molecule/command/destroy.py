@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -30,25 +30,48 @@ LOG = logger.get_logger(__name__)
 
 class Destroy(base.Base):
     """
-    Target the default scenario:
+    .. program:: molecule destroy
 
-    >>> molecule destroy
+    .. option:: molecule destroy
 
-    Target all scenarios:
+        Target the default scenario.
 
-    >>> molecule destroy --all
+    .. program:: molecule destroy --scenario-name foo
 
-    Targeting a specific scenario:
+    .. option:: molecule destroy --scenario-name foo
 
-    >>> molecule destroy --scenario-name foo
+        Targeting a specific scenario.
 
-    Targeting a specific driver:
+    .. program:: molecule destroy --all
 
-    >>> molecule converge --driver-name foo
+    .. option:: molecule destroy --all
 
-    Executing with `debug`:
+        Target all scenarios.
 
-    >>> molecule --debug destroy
+    .. program:: molecule destroy --driver-name foo
+
+    .. option:: molecule destroy --driver-name foo
+
+        Targeting a specific driver.
+
+    .. program:: molecule --debug destroy
+
+    .. option:: molecule --debug destroy
+
+        Executing with `debug`.
+
+    .. program:: molecule --base-config base.yml destroy
+
+    .. option:: molecule --base-config base.yml destroy
+
+        Executing with a `base-config`.
+
+    .. program:: molecule --env-file foo.yml destroy
+
+    .. option:: molecule --env-file foo.yml destroy
+
+        Load an env file to read variables from when rendering
+        molecule.yml.
     """
 
     def execute(self):
@@ -59,7 +82,11 @@ class Destroy(base.Base):
         :return: None
         """
         self.print_info()
-        self.prune()
+
+        if self._config.command_args.get('destroy') == 'never':
+            msg = "Skipping, '--destroy=never' requested."
+            LOG.warn(msg)
+            return
 
         if self._config.driver.delegated and not self._config.driver.managed:
             msg = 'Skipping, instances are delegated.'
@@ -68,6 +95,7 @@ class Destroy(base.Base):
 
         self._config.provisioner.destroy()
         self._config.state.reset()
+        self.prune()
 
 
 @click.command()
@@ -75,8 +103,9 @@ class Destroy(base.Base):
 @click.option(
     '--scenario-name',
     '-s',
-    default='default',
-    help='Name of the scenario to target. (default)')
+    default=base.MOLECULE_DEFAULT_SCENARIO_NAME,
+    help='Name of the scenario to target. ({})'.format(
+        base.MOLECULE_DEFAULT_SCENARIO_NAME))
 @click.option(
     '--driver-name',
     '-d',
@@ -103,5 +132,6 @@ def destroy(ctx, scenario_name, driver_name, __all):  # pragma: no cover
         base.get_configs(args, command_args), scenario_name)
     s.print_matrix()
     for scenario in s:
-        for term in scenario.sequence:
-            base.execute_subcommand(scenario.config, term)
+        for action in scenario.sequence:
+            scenario.config.action = action
+            base.execute_subcommand(scenario.config, action)

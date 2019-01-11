@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -29,17 +29,36 @@ LOG = logger.get_logger(__name__)
 
 class Verify(base.Base):
     """
-    Target the default scenario:
+    .. program:: molecule verify
 
-    >>> molecule verify
+    .. option:: molecule verify
 
-    Targeting a specific scenario:
+        Target the default scenario.
 
-    >>> molecule verify --scenario-name foo
+    .. program:: molecule verify --scenario-name foo
 
-    Executing with `debug`:
+    .. option:: molecule verify --scenario-name foo
 
-    >>> molecule --debug verify
+        Targeting a specific scenario.
+
+    .. program:: molecule --debug verify
+
+    .. option:: molecule --debug verify
+
+        Executing with `debug`.
+
+    .. program:: molecule --base-config base.yml verify
+
+    .. option:: molecule --base-config base.yml verify
+
+        Executing with a `base-config`.
+
+    .. program:: molecule --env-file foo.yml verify
+
+    .. option:: molecule --env-file foo.yml verify
+
+        Load an env file to read variables from when rendering
+        molecule.yml.
     """
 
     def execute(self):
@@ -58,8 +77,9 @@ class Verify(base.Base):
 @click.option(
     '--scenario-name',
     '-s',
-    default='default',
-    help='Name of the scenario to target. (default)')
+    default=base.MOLECULE_DEFAULT_SCENARIO_NAME,
+    help='Name of the scenario to target. ({})'.format(
+        base.MOLECULE_DEFAULT_SCENARIO_NAME))
 def verify(ctx, scenario_name):  # pragma: no cover
     """ Run automated tests against instances. """
     args = ctx.obj.get('args')
@@ -72,5 +92,6 @@ def verify(ctx, scenario_name):  # pragma: no cover
         base.get_configs(args, command_args), scenario_name)
     s.print_matrix()
     for scenario in s:
-        for term in scenario.sequence:
-            base.execute_subcommand(scenario.config, term)
+        for action in scenario.sequence:
+            scenario.config.action = action
+            base.execute_subcommand(scenario.config, action)

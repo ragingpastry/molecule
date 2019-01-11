@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -44,16 +44,61 @@ class Docker(base.Base):
           name: docker
         platforms:
           - name: instance
-            hostname: "{{ item.name }}"
-            image: "molecule_local/{{ item.image }}"
-            command: "{{ item.command | default('sleep infinity') }}"
-            privileged: "{{ item.privileged | default(omit) }}"
-            volumes: "{{ item.volumes | default(omit) }}"
-            capabilities: "{{ item.capabilities | default(omit) }}"
+            hostname: instance
+            image: image_name:tag
+            pull: True|False
+            pre_build_image: True|False
+            registry:
+              url: registry.example.com
+              credentials:
+                username: $USERNAME
+                password: $PASSWORD
+                email: user@example.com
+            command: sleep infinity
+            privileged: True|False
+            security_opts:
+              - seccomp=unconfined
+            volumes:
+              - /sys/fs/cgroup:/sys/fs/cgroup:ro
+            tmpfs:
+              - /tmp
+              - /run
+            capabilities:
+              - SYS_ADMIN
+            exposed_ports:
+              - 53/udp
+              - 53/tcp
+            published_ports:
+              - 0.0.0.0:8053:53/udp
+              - 0.0.0.0:8053:53/tcp
+            ulimits:
+              - nofile:262144:262144
+            dns_servers:
+              - 8.8.8.8
+            networks:
+              - name: foo
+              - name: bar
+            network_mode: host
+            docker_host: tcp://localhost:12376
+            env:
+              FOO: bar
+            restart_policy: on-failure
+            restart_retries: 1
+            buildargs:
+                http_proxy: http://proxy.example.com:8080/
 
     .. code-block:: bash
 
-        $ sudo pip install docker-py
+        $ pip install molecule[docker]
+
+    When pulling from a private registry, the username and password must be
+    exported as environment variables in the current shell. The only supported
+    variables are $USERNAME and $PASSWORD.
+
+    .. code-block:: bash
+
+        $ export USERNAME=foo
+        $ export PASSWORD=bar
 
     Provide the files Molecule will preserve upon each subcommand execution.
 
@@ -63,7 +108,6 @@ class Docker(base.Base):
           name: docker
           safe_files:
             - foo
-            - .molecule/bar
 
     .. _`Docker`: https://www.docker.com
     """  # noqa
@@ -82,7 +126,12 @@ class Docker(base.Base):
 
     @property
     def login_cmd_template(self):
-        return 'docker exec -ti {instance} bash'
+        return ('docker exec '
+                '-e COLUMNS={columns} '
+                '-e LINES={lines} '
+                '-e TERM=bash '
+                '-e TERM=xterm '
+                '-ti {instance} bash')
 
     @property
     def default_safe_files(self):

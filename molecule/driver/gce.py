@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -26,7 +26,7 @@ from molecule import util
 LOG = logger.get_logger(__name__)
 
 
-class Gce(base.Base):
+class GCE(base.Base):
     """
     The class responsible for managing `GCE`_ instances.  `GCE`_
     is `not` the default driver used in Molecule.
@@ -46,17 +46,10 @@ class Gce(base.Base):
           name: gce
         platforms:
           - name: instance
-            instance_names: "{{ item.name }}"
-            zone: "{{ item.zone }}"
-            machine_type: "{{ item.machine_type }}"
-            image: "{{ item.image }}"
-            service_account_email: "{{ lookup('env', 'GCE_SERVICE_ACCOUNT_EMAIL') }}"
-            credentials_file: "{{ lookup('env', 'GCE_CREDENTIALS_FILE') }}"
-            project_id: "{{ lookup('env', 'GCE_PROJECT_ID') }}"
 
     .. code-block:: bash
 
-        $ sudo pip install apache-libcloud
+        $ pip install molecule[gce]
 
     Change the options passed to the ssh client.
 
@@ -80,13 +73,12 @@ class Gce(base.Base):
           name: gce
           safe_files:
             - foo
-            - .molecule/bar
 
     .. _`GCE`: https://cloud.google.com/compute/docs/
     """  # noqa
 
     def __init__(self, config):
-        super(Gce, self).__init__(config)
+        super(GCE, self).__init__(config)
         self._name = 'gce'
 
     @property
@@ -120,8 +112,7 @@ class Gce(base.Base):
     def login_options(self, instance_name):
         d = {'instance': instance_name}
 
-        return self._config.merge_dicts(
-            d, self._get_instance_config(instance_name))
+        return util.merge_dicts(d, self._get_instance_config(instance_name))
 
     def ansible_connection_options(self, instance_name):
         try:

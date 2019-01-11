@@ -3,12 +3,8 @@
   hosts: localhost
   connection: local
   gather_facts: false
-  no_log: "{{ not lookup('env', 'MOLECULE_DEBUG') | bool }}"
+  no_log: "{{ not (lookup('env', 'MOLECULE_DEBUG') | bool or molecule_yml.provisioner.log|default(false) | bool) }}"
   vars:
-    molecule_file: "{{ lookup('env', 'MOLECULE_FILE') }}"
-    molecule_instance_config: "{{ lookup('env', 'MOLECULE_INSTANCE_CONFIG') }}"
-    molecule_yml: "{{ lookup('file', molecule_file) | molecule_from_yaml }}"
-
     ssh_user: ubuntu
     ssh_port: 22
 
@@ -32,8 +28,35 @@
     keypair_name: molecule_key
     keypair_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
   tasks:
-    - include: security_group.yml
-    - include: keypair.yml
+    - name: Create security group
+      ec2_group:
+        name: "{{ security_group_name }}"
+        description: "{{ security_group_name }}"
+        rules: "{{ security_group_rules }}"
+        rules_egress: "{{ security_group_rules_egress }}"
+
+    - name: Test for presence of local keypair
+      stat:
+        path: "{{ keypair_path }}"
+      register: keypair_local
+
+    - name: Delete remote keypair
+      ec2_key:
+        name: "{{ keypair_name }}"
+        state: absent
+      when: not keypair_local.stat.exists
+
+    - name: Create keypair
+      ec2_key:
+        name: "{{ keypair_name }}"
+      register: keypair
+
+    - name: Persist the keypair
+      copy:
+        dest: "{{ keypair_path }}"
+        content: "{{ keypair.key.private_key }}"
+        mode: 0600
+      when: keypair.changed
 
     - name: Create molecule instance(s)
       ec2:
@@ -84,8 +107,6 @@
 
     - name: Dump instance config
       copy:
-        # NOTE(retr0h): Workaround for Ansible 2.2.
-        #               https://github.com/ansible/ansible/issues/20885
         content: "{{ instance_conf | to_json | from_json | molecule_to_yaml | molecule_header }}"
         dest: "{{ molecule_instance_config }}"
       when: server.changed | bool

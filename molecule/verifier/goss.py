@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -34,13 +34,20 @@ class Goss(base.Base):
     `Goss`_ is a YAML based serverspec-like tool for validating a server's
     configuration.  `Goss`_ is `not` the default verifier used in Molecule.
 
-    Molecule executes a playbook (`test_default.yml`) located in the role's
+    Molecule executes a playbook (`verify.yml`) located in the role's
     `scenario.directory`.  This playbook will copy YAML files to the instances,
     and execute Goss using a community written Goss Ansible module bundled with
     Molecule.
 
-    Additional options can be passed to `goss validate` by modifying the test
+    Additional options can be passed to `goss validate` by modifying the verify
     playbook.
+
+    .. code-block:: yaml
+
+        verifier:
+          name: goss
+          lint:
+            name: yamllint
 
     The testing can be disabled by setting `enabled` to False.
 
@@ -50,10 +57,27 @@ class Goss(base.Base):
           name: goss
           enabled: False
 
+    Environment variables can be passed to the verifier.
+
+    .. code-block:: yaml
+
+        verifier:
+          name: goss
+          env:
+            FOO: bar
+
+    Change path to the test directory.
+
+    .. code-block:: yaml
+
+        verifier:
+          name: goss
+          directory: /foo/bar/
+
     .. important::
 
         Due to the nature of this verifier.  Molecule does not perform options
-        handling the same way Testinfra does.
+        handling in the same fashion as Testinfra.
 
     .. _`Goss`: https://github.com/aelsabbahy/goss
     """
@@ -79,7 +103,7 @@ class Goss(base.Base):
 
     @property
     def default_env(self):
-        return self._config.merge_dicts(os.environ.copy(), self._config.env)
+        return util.merge_dicts(os.environ.copy(), self._config.env)
 
     def bake(self):
         pass
@@ -98,9 +122,7 @@ class Goss(base.Base):
         msg = 'Executing Goss tests found in {}/...'.format(self.directory)
         LOG.info(msg)
 
-        goss_playbook = os.path.join(self._config.scenario.directory,
-                                     'verifier.yml')
-        self._config.provisioner.converge(goss_playbook)
+        self._config.provisioner.verify()
 
         msg = 'Verifier completed successfully.'
         LOG.success(msg)

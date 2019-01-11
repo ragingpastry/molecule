@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -18,13 +18,26 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 
+import os
+
+import pytest
+
+from molecule import util
 from molecule.command import prepare
 
 
-def test_execute(mocker, patched_logger_info, patched_ansible_prepare,
-                 config_instance):
-    m = mocker.patch('molecule.command.prepare.Prepare._has_prepare_playbook')
-    m.return_value = True
+@pytest.fixture
+def _patched_ansible_prepare(mocker):
+    return mocker.patch('molecule.provisioner.ansible.Ansible.prepare')
+
+
+# NOTE(retr0h): The use of the `patched_config_validate` fixture, disables
+# config.Config._validate from executing.  Thus preventing odd side-effects
+# throughout patched.assert_called unit tests.
+def test_execute(mocker, patched_logger_info, _patched_ansible_prepare,
+                 patched_config_validate, config_instance):
+    pb = os.path.join(config_instance.scenario.directory, 'prepare.yml')
+    util.write_file(pb, '')
 
     p = prepare.Prepare(config_instance)
     p.execute()
@@ -35,13 +48,13 @@ def test_execute(mocker, patched_logger_info, patched_ansible_prepare,
     ]
     assert x == patched_logger_info.mock_calls
 
-    patched_ansible_prepare.assert_called_once_with()
+    _patched_ansible_prepare.assert_called_once_with()
 
     assert config_instance.state.prepared
 
 
 def test_execute_skips_when_instances_already_prepared(
-        patched_logger_warn, patched_ansible_prepare, config_instance):
+        patched_logger_warn, _patched_ansible_prepare, config_instance):
     config_instance.state.change_state('prepared', True)
     p = prepare.Prepare(config_instance)
     p.execute()
@@ -49,42 +62,31 @@ def test_execute_skips_when_instances_already_prepared(
     msg = 'Skipping, instances already prepared.'
     patched_logger_warn.assert_called_once_with(msg)
 
-    assert not patched_ansible_prepare.called
+    assert not _patched_ansible_prepare.called
+
+
+def test_execute_skips_when_playbook_not_configured(
+        patched_logger_warn, _patched_ansible_prepare, config_instance):
+
+    p = prepare.Prepare(config_instance)
+    p.execute()
+
+    msg = 'Skipping, prepare playbook not configured.'
+    patched_logger_warn.assert_called_once_with(msg)
+
+    assert not _patched_ansible_prepare.called
 
 
 def test_execute_when_instances_already_prepared_but_force_provided(
-        mocker, patched_logger_warn, patched_ansible_prepare, config_instance):
-    m = mocker.patch('molecule.command.prepare.Prepare._has_prepare_playbook')
-    m.return_value = True
+        mocker, patched_logger_warn, _patched_ansible_prepare,
+        config_instance):
+    pb = os.path.join(config_instance.scenario.directory, 'prepare.yml')
+    util.write_file(pb, '')
+
     config_instance.state.change_state('prepared', True)
     config_instance.command_args = {'force': True}
 
     p = prepare.Prepare(config_instance)
     p.execute()
 
-    patched_ansible_prepare.assert_called_once_with()
-
-
-def test_execute_logs_deprecation_when_prepare_yml_missing(
-        mocker, patched_logger_warn, patched_ansible_create,
-        patched_ansible_prepare, config_instance):
-    m = mocker.patch('molecule.command.prepare.Prepare._has_prepare_playbook')
-    m.return_value = False
-
-    p = prepare.Prepare(config_instance)
-    p.execute()
-
-    msg = ('[DEPRECATION WARNING]:\n  The prepare playbook not found '
-           'at {}/prepare.yml.  Please add one to the scenarios '
-           'directory.').format(config_instance.scenario.directory)
-    patched_logger_warn.assert_called_once_with(msg)
-
-    assert not patched_ansible_prepare.called
-
-    assert config_instance.state.prepared
-
-
-def test_has_prepare_playbook(config_instance):
-    p = prepare.Prepare(config_instance)
-
-    assert not p._has_prepare_playbook()
+    _patched_ansible_prepare.assert_called_once_with()

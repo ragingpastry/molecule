@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -21,6 +21,7 @@
 import os
 
 import anyconfig
+import six
 
 from molecule import interpolation
 from molecule import logger
@@ -30,6 +31,7 @@ from molecule import state
 from molecule import util
 from molecule.dependency import ansible_galaxy
 from molecule.dependency import gilt
+from molecule.dependency import shell
 from molecule.driver import azure
 from molecule.driver import delegated
 from molecule.driver import docker
@@ -40,17 +42,28 @@ from molecule.driver import lxd
 from molecule.driver import openstack
 from molecule.driver import vagrant
 from molecule.lint import yamllint
-from molecule.model import schema
+from molecule.model import schema_v2
 from molecule.provisioner import ansible
 from molecule.verifier import goss
+from molecule.verifier import inspec
 from molecule.verifier import testinfra
 
 LOG = logger.get_logger(__name__)
 MOLECULE_DIRECTORY = 'molecule'
 MOLECULE_FILE = 'molecule.yml'
 MERGE_STRATEGY = anyconfig.MS_DICTS
+MOLECULE_KEEP_STRING = 'MOLECULE_'
 
 
+# https://stackoverflow.com/questions/16017397/injecting-function-call-after-init-with-decorator  # noqa
+class NewInitCaller(type):
+    def __call__(cls, *args, **kwargs):
+        obj = type.__call__(cls, *args, **kwargs)
+        obj.after_init()
+        return obj
+
+
+@six.add_metaclass(NewInitCaller)
 class Config(object):
     """
     Molecule searches the current directory for `molecule.yml` files by
@@ -88,19 +101,32 @@ class Config(object):
         self.args = args
         self.command_args = command_args
         self.ansible_args = ansible_args
-        self.config = self._combine()
+        self.config = self._get_config()
+        self._action = None
+
+    def after_init(self):
+        self.config = self._reget_config()
+        self._validate()
 
     @property
     def debug(self):
         return self.args.get('debug', False)
 
     @property
+    def env_file(self):
+        return util.abs_path(self.args.get('env_file'))
+
+    @property
     def subcommand(self):
         return self.command_args['subcommand']
 
     @property
-    def ephemeral_directory(self):
-        return os.path.join(self.scenario.directory, '.molecule')
+    def action(self):
+        return self._action
+
+    @action.setter
+    def action(self, value):
+        self._action = value
 
     @property
     def project_directory(self):
@@ -111,16 +137,18 @@ class Config(object):
         return molecule_directory(self.project_directory)
 
     @property
+    @util.memoize
     def dependency(self):
         dependency_name = self.config['dependency']['name']
         if dependency_name == 'galaxy':
             return ansible_galaxy.AnsibleGalaxy(self)
         elif dependency_name == 'gilt':
             return gilt.Gilt(self)
-        else:
-            util.exit_with_invalid_section('dependency', dependency_name)
+        elif dependency_name == 'shell':
+            return shell.Shell(self)
 
     @property
+    @util.memoize
     def driver(self):
         driver_name = self._get_driver_name()
         driver = None
@@ -132,19 +160,17 @@ class Config(object):
         elif driver_name == 'docker':
             driver = docker.Docker(self)
         elif driver_name == 'ec2':
-            driver = ec2.Ec2(self)
+            driver = ec2.EC2(self)
         elif driver_name == 'gce':
-            driver = gce.Gce(self)
+            driver = gce.GCE(self)
         elif driver_name == 'lxc':
-            driver = lxc.Lxc(self)
+            driver = lxc.LXC(self)
         elif driver_name == 'lxd':
-            driver = lxd.Lxd(self)
+            driver = lxd.LXD(self)
         elif driver_name == 'openstack':
             driver = openstack.Openstack(self)
         elif driver_name == 'vagrant':
             driver = vagrant.Vagrant(self)
-        else:
-            util.exit_with_invalid_section('driver', driver_name)
 
         driver.name = driver_name
 
@@ -159,62 +185,67 @@ class Config(object):
         return {
             'MOLECULE_DEBUG': str(self.debug),
             'MOLECULE_FILE': self.molecule_file,
+            'MOLECULE_ENV_FILE': self.env_file,
             'MOLECULE_INVENTORY_FILE': self.provisioner.inventory_file,
             'MOLECULE_EPHEMERAL_DIRECTORY': self.scenario.ephemeral_directory,
             'MOLECULE_SCENARIO_DIRECTORY': self.scenario.directory,
+            'MOLECULE_PROJECT_DIRECTORY': self.project_directory,
             'MOLECULE_INSTANCE_CONFIG': self.driver.instance_config,
             'MOLECULE_DEPENDENCY_NAME': self.dependency.name,
             'MOLECULE_DRIVER_NAME': self.driver.name,
             'MOLECULE_LINT_NAME': self.lint.name,
             'MOLECULE_PROVISIONER_NAME': self.provisioner.name,
+            'MOLECULE_PROVISIONER_LINT_NAME': self.provisioner.lint.name,
             'MOLECULE_SCENARIO_NAME': self.scenario.name,
             'MOLECULE_VERIFIER_NAME': self.verifier.name,
+            'MOLECULE_VERIFIER_LINT_NAME': self.verifier.lint.name,
+            'MOLECULE_VERIFIER_TEST_DIRECTORY': self.verifier.directory,
         }
 
     @property
+    @util.memoize
     def lint(self):
         lint_name = self.config['lint']['name']
         if lint_name == 'yamllint':
             return yamllint.Yamllint(self)
-        else:
-            util.exit_with_invalid_section('lint', lint_name)
 
     @property
+    @util.memoize
     def platforms(self):
         return platforms.Platforms(self)
 
     @property
+    @util.memoize
     def provisioner(self):
         provisioner_name = self.config['provisioner']['name']
         if provisioner_name == 'ansible':
             return ansible.Ansible(self)
-        else:
-            util.exit_with_invalid_section('provisioner', provisioner_name)
 
     @property
+    @util.memoize
     def scenario(self):
         return scenario.Scenario(self)
 
     @property
+    @util.memoize
     def state(self):
         return state.State(self)
 
     @property
+    @util.memoize
     def verifier(self):
         verifier_name = self.config['verifier']['name']
         if verifier_name == 'testinfra':
             return testinfra.Testinfra(self)
+        elif verifier_name == 'inspec':
+            return inspec.Inspec(self)
         elif verifier_name == 'goss':
             return goss.Goss(self)
-        else:
-            util.exit_with_invalid_section('verifier', verifier_name)
 
     @property
+    @util.memoize
     def verifiers(self):
         return molecule_verifiers()
-
-    def merge_dicts(self, a, b):
-        return merge_dicts(a, b)
 
     def _get_driver_name(self):
         driver_from_state_file = self.state.driver
@@ -235,36 +266,78 @@ class Config(object):
 
         return driver_name
 
-    def _combine(self):
+    def _get_config(self):
         """
-        Perform a prioritized recursive merge of the `molecule_file` with
-        defaults, interpolate the result with environment variables, and
-        returns a new dict.
+        Perform a prioritized recursive merge of config files, and returns
+        a new dict.  Prior to merging the config files are interpolated with
+        environment variables.
 
         :return: dict
         """
-        i = interpolation.Interpolator(interpolation.TemplateWithDefaults,
-                                       os.environ)
+        return self._combine(keep_string=MOLECULE_KEEP_STRING)
 
-        base = self._get_defaults()
+    def _reget_config(self):
+        """
+        Perform the same prioritized recursive merge from `get_config`, this
+        time, interpolating the `keep_string` left behind in the original
+        `get_config` call.  This is probably __very__ bad.
+
+        :return: dict
+        """
+        env = util.merge_dicts(os.environ.copy(), self.env)
+        env = set_env_from_file(env, self.env_file)
+
+        return self._combine(env=env)
+
+    def _combine(self, env=os.environ, keep_string=None):
+        """
+        Perform a prioritized recursive merge of config files, and returns
+        a new dict.  Prior to merging the config files are interpolated with
+        environment variables.
+
+        1. Loads Molecule defaults.
+        2. Loads a base config (if provided) and merges ontop of defaults.
+        3. Loads the scenario's `molecule file` and merges ontop of previous
+           merge.
+
+        :return: dict
+        """
+        defaults = self._get_defaults()
+        base_config = self.args.get('base_config')
+        if base_config and os.path.exists(base_config):
+            with util.open_file(base_config) as stream:
+                s = stream.read()
+                self._preflight(s)
+                interpolated_config = self._interpolate(s, env, keep_string)
+                defaults = util.merge_dicts(
+                    defaults, util.safe_load(interpolated_config))
+
         with util.open_file(self.molecule_file) as stream:
-            try:
-                interpolated_config = i.interpolate(stream.read())
-                base = self.merge_dicts(base,
+            s = stream.read()
+            self._preflight(s)
+            interpolated_config = self._interpolate(s, env, keep_string)
+            defaults = util.merge_dicts(defaults,
                                         util.safe_load(interpolated_config))
-            except interpolation.InvalidInterpolation as e:
-                msg = ("parsing config file '{}'.\n\n"
-                       '{}\n{}'.format(self.molecule_file, e.place, e.string))
-                util.sysexit_with_message(msg)
 
-        schema.validate(base)
+        return defaults
 
-        return base
+    def _interpolate(self, stream, env, keep_string):
+        env = set_env_from_file(env, self.env_file)
+
+        i = interpolation.Interpolator(interpolation.TemplateWithDefaults, env)
+
+        try:
+            return i.interpolate(stream, keep_string)
+        except interpolation.InvalidInterpolation as e:
+            msg = ("parsing config file '{}'.\n\n"
+                   '{}\n{}'.format(self.molecule_file, e.place, e.string))
+            util.sysexit_with_message(msg)
 
     def _get_defaults(self):
         return {
             'dependency': {
                 'name': 'galaxy',
+                'command': None,
                 'enabled': True,
                 'options': {},
                 'env': {},
@@ -272,7 +345,7 @@ class Config(object):
             'driver': {
                 'name': 'docker',
                 'provider': {
-                    'name': None
+                    'name': None,
                 },
                 'options': {
                     'managed': True,
@@ -304,7 +377,8 @@ class Config(object):
                     'converge': 'playbook.yml',
                     'destroy': 'destroy.yml',
                     'prepare': 'prepare.yml',
-                    'side_effect': None,
+                    'side_effect': 'side_effect.yml',
+                    'verify': 'verify.yml',
                 },
                 'lint': {
                     'name': 'ansible-lint',
@@ -368,44 +442,26 @@ class Config(object):
             },
         }
 
+    def _preflight(self, data):
+        env = os.environ.copy()
+        env = set_env_from_file(env, self.env_file)
+        errors = schema_v2.pre_validate(data, env, MOLECULE_KEEP_STRING)
 
-def merge_dicts(a, b):
-    """
-    Merges the values of B into A and returns a new dict.  Uses the same
-    merge strategy as ``config._combine``.
+        if errors:
+            msg = "Failed to validate.\n\n{}".format(errors)
+            util.sysexit_with_message(msg)
 
-    ::
+    def _validate(self):
+        msg = 'Validating schema {}.'.format(self.molecule_file)
+        LOG.info(msg)
 
-        dict a
+        errors = schema_v2.validate(self.config)
+        if errors:
+            msg = "Failed to validate.\n\n{}".format(errors)
+            util.sysexit_with_message(msg)
 
-        b:
-           - c: 0
-           - c: 2
-        d:
-           e: "aaa"
-           f: 3
-
-        dict b
-
-        a: 1
-        b:
-           - c: 3
-        d:
-           e: "bbb"
-
-    Will give an object such as::
-
-        {'a': 1, 'b': [{'c': 3}], 'd': {'e': "bbb", 'f': 3}}
-
-
-    :param a: the target dictionary
-    :param b: the dictionary to import
-    :return: dict
-    """
-    conf = a
-    anyconfig.merge(a, b, ac_merge=MERGE_STRATEGY)
-
-    return conf
+        msg = 'Validation completed successfully.'
+        LOG.success(msg)
 
 
 def molecule_directory(path):
@@ -421,14 +477,30 @@ def molecule_drivers():
         azure.Azure(None).name,
         delegated.Delegated(None).name,
         docker.Docker(None).name,
-        ec2.Ec2(None).name,
-        gce.Gce(None).name,
-        lxc.Lxc(None).name,
-        lxd.Lxd(None).name,
+        ec2.EC2(None).name,
+        gce.GCE(None).name,
+        lxc.LXC(None).name,
+        lxd.LXD(None).name,
         openstack.Openstack(None).name,
         vagrant.Vagrant(None).name,
     ]
 
 
 def molecule_verifiers():
-    return [goss.Goss(None).name, testinfra.Testinfra(None).name]
+    return [
+        goss.Goss(None).name,
+        inspec.Inspec(None).name,
+        testinfra.Testinfra(None).name,
+    ]
+
+
+def set_env_from_file(env, env_file):
+    if env_file and os.path.exists(env_file):
+        env = env.copy()
+        d = util.safe_load_file(env_file)
+        for k, v in d.items():
+            env[k] = v
+
+        return env
+
+    return env

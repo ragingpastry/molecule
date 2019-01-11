@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -19,6 +19,8 @@
 #  DEALINGS IN THE SOFTWARE.
 
 import abc
+
+from molecule import util
 
 
 class Base(object):
@@ -75,10 +77,10 @@ class Base(object):
 
     @property
     def options(self):
-        return self._config.merge_dicts(self.default_options,
-                                        self._config.config['lint']['options'])
+        return util.merge_dicts(self.default_options,
+                                self._config.config['lint']['options'])
 
     @property
     def env(self):
-        return self._config.merge_dicts(self.default_env,
-                                        self._config.config['lint']['env'])
+        return util.merge_dicts(self.default_env,
+                                self._config.config['lint']['env'])

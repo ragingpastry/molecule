@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -32,17 +32,39 @@ LOG = logger.get_logger(__name__)
 
 class Idempotence(base.Base):
     """
-    Target the default scenario:
+    Runs the converge step a second time. If no tasks will be marked as changed
+    the scenario will be considered idempotent.
 
-    >>> molecule idempotence
+    .. program:: molecule idempotence
 
-    Targeting a specific scenario:
+    .. option:: molecule idempotence
 
-    >>> molecule idempotence --scenario-name foo
+        Target the default scenario.
 
-    Executing with `debug`:
+    .. program:: molecule idempotence --scenario-name foo
 
-    >>> molecule --debug idempotence
+    .. option:: molecule idempotence --scenario-name foo
+
+        Targeting a specific scenario.
+
+    .. program:: molecule --debug idempotence
+
+    .. option:: molecule --debug idempotence
+
+        Executing with `debug`.
+
+    .. program:: molecule --base-config base.yml idempotence
+
+    .. option:: molecule --base-config base.yml idempotence
+
+        Executing with a `base-config`.
+
+    .. program:: molecule --env-file foo.yml idempotence
+
+    .. option:: molecule --env-file foo.yml idempotence
+
+        Load an env file to read variables from when rendering
+        molecule.yml.
     """
 
     def execute(self):
@@ -65,7 +87,7 @@ class Idempotence(base.Base):
             LOG.success(msg)
         else:
             msg = ('Idempotence test failed because of the following tasks:\n'
-                   '{}').format('\n'.join(self._non_idempotent_tasks(output)))
+                   u'{}').format('\n'.join(self._non_idempotent_tasks(output)))
             util.sysexit_with_message(msg)
 
     def _is_idempotent(self, output):
@@ -111,7 +133,7 @@ class Idempotence(base.Base):
             elif line.startswith('changed'):
                 host_name = re.search(r'\[(.*)\]', line).groups()[0]
                 task_name = re.search(r'\[(.*)\]', task_line).groups()[0]
-                res.append('* [{}] => {}'.format(host_name, task_name))
+                res.append(u'* [{}] => {}'.format(host_name, task_name))
 
         return res
 
@@ -121,8 +143,9 @@ class Idempotence(base.Base):
 @click.option(
     '--scenario-name',
     '-s',
-    default='default',
-    help='Name of the scenario to target. (default)')
+    default=base.MOLECULE_DEFAULT_SCENARIO_NAME,
+    help='Name of the scenario to target. ({})'.format(
+        base.MOLECULE_DEFAULT_SCENARIO_NAME))
 def idempotence(ctx, scenario_name):  # pragma: no cover
     """
     Use the provisioner to configure the instances and parse the output to
@@ -138,5 +161,6 @@ def idempotence(ctx, scenario_name):  # pragma: no cover
         base.get_configs(args, command_args), scenario_name)
     s.print_matrix()
     for scenario in s:
-        for term in scenario.sequence:
-            base.execute_subcommand(scenario.config, term)
+        for action in scenario.sequence:
+            scenario.config.action = action
+            base.execute_subcommand(scenario.config, action)

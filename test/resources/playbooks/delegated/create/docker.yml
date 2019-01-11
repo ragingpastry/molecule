@@ -5,5 +5,8 @@
     hostname: delegated-instance-docker
     image: molecule_local/centos:latest
     recreate: false
-    log_driver: syslog
+    log_driver: json-file
     command: sleep infinity
+    ulimits: "{{ item.ulimits | default(omit) }}"
+    networks: "{{ item.networks | default(omit) }}"
+    dns_servers: "{{ item.dns_servers | default(omit) }}"

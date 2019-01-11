@@ -18,17 +18,20 @@ Install the test framework `Tox`_.
 
     $ pip install tox
 
-Install `tox-tags`_.
-
-.. _`tox-tags`: https://github.com/AndreLouisCaron/tox-tags
-
 Install the remaining requirements in a venv (optional).
 
 .. code-block:: bash
 
     $ pip install -r test-requirements.txt -r requirements.txt
 
-.. _`Tox`: https://tox.readthedocs.io/en/latest
+For some tests `RuboCop`_ is required.
+
+.. code-block:: bash
+
+    # apt-get install ruby ruby-dev
+    # gem install rubocop
+
+.. _`RuboCop`: http://batsov.com/rubocop/
 
 .. _full_testing:
 

@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -24,7 +24,7 @@ from molecule import status
 
 
 @pytest.fixture
-def status_instance():
+def _instance():
     s = status.get_status()
 
     s.instance_name = None
@@ -37,25 +37,25 @@ def status_instance():
     return s
 
 
-def test_status_instance_name_attribute(status_instance):
-    assert status_instance.instance_name is None
+def test__instance_name_attribute(_instance):
+    assert _instance.instance_name is None
 
 
-def test_status_driver_name_attribute(status_instance):
-    assert status_instance.driver_name is None
+def test_status_driver_name_attribute(_instance):
+    assert _instance.driver_name is None
 
 
-def test_status_provisioner_name_attribute(status_instance):
-    assert status_instance.provisioner_name is None
+def test_status_provisioner_name_attribute(_instance):
+    assert _instance.provisioner_name is None
 
 
-def test_status_scenario_name_attribute(status_instance):
-    assert status_instance.scenario_name is None
+def test_status_scenario_name_attribute(_instance):
+    assert _instance.scenario_name is None
 
 
-def test_status_created_attribute(status_instance):
-    assert status_instance.created is None
+def test_status_created_attribute(_instance):
+    assert _instance.created is None
 
 
-def test_status_converged_attribute(status_instance):
-    assert status_instance.converged is None
+def test_status_converged_attribute(_instance):
+    assert _instance.converged is None

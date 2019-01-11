@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -20,7 +20,7 @@
 
 import distutils
 import distutils.version
-import platform
+import os
 import sys
 
 import ansible
@@ -33,9 +33,12 @@ from molecule import util
 
 click_completion.init()
 
+LOCAL_CONFIG = os.path.expanduser('~/.config/molecule/config.yml')
+ENV_FILE = '.env.yml'
+
 
 def _get_python_version():  # pragma: no cover
-    return sys.version_info[:2]
+    return sys.version_info
 
 
 def _get_ansible_version():  # pragma: no cover
@@ -43,24 +46,35 @@ def _get_ansible_version():  # pragma: no cover
 
 
 def _supported_python2_version():  # pragma: no cover
-    return _get_python_version() == (2, 7)
+    return _get_python_version()[:2] == (2, 7)
 
 
 def _supported_python3_version():  # pragma: no cover
-    return _get_python_version() == (3, 6)
+    return _get_python_version() >= (3, 6)
 
 
 def _supported_ansible_version():  # pragma: no cover
+    if (distutils.version.LooseVersion(_get_ansible_version()) <=
+            distutils.version.LooseVersion('2.4')):
+        msg = ("Ansible version '{}' not supported.  "
+               'Molecule only supports Ansible versions '
+               "'>= 2.4'.").format(_get_ansible_version())
+        util.sysexit_with_message(msg)
+
     if _supported_python2_version():
-        if (distutils.version.LooseVersion(_get_ansible_version()) <=
-                distutils.version.LooseVersion('2.2')):
+        pass
+    elif _supported_python3_version():
+        if (distutils.version.LooseVersion(_get_ansible_version()) <
+                distutils.version.LooseVersion('2.4')):
             msg = ("Ansible version '{}' not supported.  "
                    'Molecule only supports Ansible versions '
-                   '>= 2.2.').format(_get_ansible_version())
+                   "'>=2.5' with Python version '{}'").format(
+                       _get_ansible_version(), _get_python_version())
             util.sysexit_with_message(msg)
-    elif _supported_python3_version():
-        msg = ("Python version '{}' not supported.  Molecule only supports "
-               'python version = 2.7.').format(platform.python_version())
+    else:
+        msg = ("Python version '{}' not supported.  "
+               'Molecule only supports Python versions '
+               "'2.7' and '>= 3.6'.").format(_get_python_version())
         util.sysexit_with_message(msg)
 
 
@@ -76,9 +90,22 @@ def _allowed(ctx, param, value):  # pragma: no cover
     default=False,
     callback=_allowed,
     help='Enable or disable debug mode. Default is disabled.')
+@click.option(
+    '--base-config',
+    '-c',
+    default=LOCAL_CONFIG,
+    help=('Path to a base config.  If provided Molecule will load '
+          "this config first, and deep merge each scenario's "
+          'molecule.yml on top. ({})').format(LOCAL_CONFIG))
+@click.option(
+    '--env-file',
+    '-e',
+    default=ENV_FILE,
+    help=('The file to read variables from when rendering molecule.yml. '
+          '(.env.yml)'))
 @click.version_option(version=molecule.__version__)
 @click.pass_context
-def main(ctx, debug):  # pragma: no cover
+def main(ctx, debug, base_config, env_file):  # pragma: no cover
     """
     \b
      _____     _             _
@@ -95,6 +122,8 @@ def main(ctx, debug):  # pragma: no cover
     ctx.obj = {}
     ctx.obj['args'] = {}
     ctx.obj['args']['debug'] = debug
+    ctx.obj['args']['base_config'] = base_config
+    ctx.obj['args']['env_file'] = env_file
 
 
 main.add_command(command.check.check)
@@ -107,6 +136,7 @@ main.add_command(command.init.init)
 main.add_command(command.lint.lint)
 main.add_command(command.list.list)
 main.add_command(command.login.login)
+main.add_command(command.matrix.matrix)
 main.add_command(command.prepare.prepare)
 main.add_command(command.side_effect.side_effect)
 main.add_command(command.syntax.syntax)

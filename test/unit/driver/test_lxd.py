@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -27,104 +27,99 @@ from molecule.driver import lxd
 
 
 @pytest.fixture
-def molecule_driver_section_data():
-    return {
-        'driver': {
-            'name': 'lxd',
-            'options': {},
-        }
-    }
+def _instance(config_instance):
+    return lxd.LXD(config_instance)
 
 
-@pytest.fixture
-def lxd_instance(molecule_driver_section_data, config_instance):
-    config_instance.merge_dicts(config_instance.config,
-                                molecule_driver_section_data)
-
-    return lxd.Lxd(config_instance)
+def test_config_private_member(_instance):
+    assert isinstance(_instance._config, config.Config)
 
 
-def test_config_private_member(lxd_instance):
-    assert isinstance(lxd_instance._config, config.Config)
-
-
-def test_testinfra_options_property(lxd_instance):
+def test_testinfra_options_property(_instance):
     assert {
         'connection': 'ansible',
-        'ansible-inventory': lxd_instance._config.provisioner.inventory_file
-    } == lxd_instance.testinfra_options
+        'ansible-inventory': _instance._config.provisioner.inventory_file
+    } == _instance.testinfra_options
 
 
-def test_name_property(lxd_instance):
-    assert 'lxd' == lxd_instance.name
+def test_name_property(_instance):
+    assert 'lxd' == _instance.name
 
 
-def test_options_property(lxd_instance):
+def test_options_property(_instance):
     x = {'managed': True}
 
-    assert x == lxd_instance.options
+    assert x == _instance.options
 
 
-def test_login_cmd_template_property(lxd_instance):
-    assert 'lxc exec {instance} bash' == lxd_instance.login_cmd_template
+def test_login_cmd_template_property(_instance):
+    assert 'lxc exec {instance} bash' == _instance.login_cmd_template
 
 
-def test_safe_files_property(lxd_instance):
-    assert [] == lxd_instance.safe_files
+def test_safe_files_property(_instance):
+    assert [] == _instance.safe_files
 
 
-def test_default_safe_files_property(lxd_instance):
-    assert [] == lxd_instance.default_safe_files
+def test_default_safe_files_property(_instance):
+    assert [] == _instance.default_safe_files
 
 
-def test_delegated_property(lxd_instance):
-    assert not lxd_instance.delegated
+def test_delegated_property(_instance):
+    assert not _instance.delegated
 
 
-def test_managed_property(lxd_instance):
-    assert lxd_instance.managed
+def test_managed_property(_instance):
+    assert _instance.managed
 
 
-def test_default_ssh_connection_options_property(lxd_instance):
-    assert [] == lxd_instance.default_ssh_connection_options
+def test_default_ssh_connection_options_property(_instance):
+    assert [] == _instance.default_ssh_connection_options
 
 
-def test_login_options(lxd_instance):
-    assert {'instance': 'foo'} == lxd_instance.login_options('foo')
+def test_login_options(_instance):
+    assert {'instance': 'foo'} == _instance.login_options('foo')
 
 
-def test_ansible_connection_options(lxd_instance):
+def test_ansible_connection_options(_instance):
     x = {'ansible_connection': 'lxd'}
 
-    assert x == lxd_instance.ansible_connection_options('foo')
+    assert x == _instance.ansible_connection_options('foo')
 
 
-def test_instance_config_property(lxd_instance):
-    x = os.path.join(lxd_instance._config.scenario.ephemeral_directory,
+def test_instance_config_property(_instance):
+    x = os.path.join(_instance._config.scenario.ephemeral_directory,
                      'instance_config.yml')
 
-    assert x == lxd_instance.instance_config
+    assert x == _instance.instance_config
 
 
-def test_ssh_connection_options_property(lxd_instance):
-    assert [] == lxd_instance.ssh_connection_options
+def test_ssh_connection_options_property(_instance):
+    assert [] == _instance.ssh_connection_options
 
 
-def test_status(mocker, lxd_instance):
-    result = lxd_instance.status()
+def test_status(mocker, _instance):
+    result = _instance.status()
 
     assert 2 == len(result)
 
     assert result[0].instance_name == 'instance-1'
-    assert result[0].driver_name == 'Lxd'
-    assert result[0].provisioner_name == 'Ansible'
+    assert result[0].driver_name == 'lxd'
+    assert result[0].provisioner_name == 'ansible'
     assert result[0].scenario_name == 'default'
-    assert result[0].created == 'False'
-    assert result[0].converged == 'False'
+    assert result[0].created == 'false'
+    assert result[0].converged == 'false'
 
     assert result[1].instance_name == 'instance-2'
-    assert result[1].driver_name == 'Lxd'
-    assert result[1].provisioner_name == 'Ansible'
+    assert result[1].driver_name == 'lxd'
+    assert result[1].provisioner_name == 'ansible'
     assert result[1].scenario_name == 'default'
-    assert result[1].created == 'False'
-    assert result[1].converged == 'False'
+    assert result[1].created == 'false'
+    assert result[1].converged == 'false'
+
+
+def test_created(_instance):
+    assert 'false' == _instance._created()
+
+
+def test_converged(_instance):
+    assert 'false' == _instance._converged()

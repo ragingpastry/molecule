@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -202,7 +202,7 @@ def test_render_template():
 
 def test_write_file(temp_dir):
     dest_file = os.path.join(temp_dir.strpath, 'test_util_write_file.tmp')
-    contents = binascii.b2a_hex(os.urandom(15)).decode()
+    contents = binascii.b2a_hex(os.urandom(15)).decode('utf-8')
     util.write_file(dest_file, contents)
     with util.open_file(dest_file) as stream:
         data = stream.read()
@@ -249,6 +249,18 @@ def test_safe_load():
 
 def test_safe_load_returns_empty_dict_on_empty_string():
     assert {} == util.safe_load('')
+
+
+def test_safe_load_exits_when_cannot_parse():
+    data = """
+---
+%foo:
+""".strip()
+
+    with pytest.raises(SystemExit) as e:
+        util.safe_load(data)
+
+    assert 1 == e.value.code
 
 
 def test_safe_load_file(temp_dir):
@@ -308,19 +320,27 @@ def test_verbose_flag_preserves_verbose_option():
     assert {'verbose': True} == options
 
 
+def test_filter_verbose_permutation():
+    options = {
+        'v': True,
+        'vv': True,
+        'vvv': True,
+        'vfoo': True,
+        'foo': True,
+        'bar': True,
+    }
+
+    x = {
+        'vfoo': True,
+        'foo': True,
+        'bar': True,
+    }
+    assert x == util.filter_verbose_permutation(options)
+
+
 def test_title():
     assert 'Foo' == util.title('foo')
     assert 'Foo Bar' == util.title('foo_bar')
-
-
-def test_exit_with_invalid_section(patched_logger_critical):
-    with pytest.raises(SystemExit) as e:
-        util.exit_with_invalid_section('section', 'name')
-
-    assert 1 == e.value.code
-
-    msg = "Invalid section named 'name' configured."
-    patched_logger_critical.assert_called_once_with(msg)
 
 
 def test_abs_path(temp_dir):
@@ -328,6 +348,10 @@ def test_abs_path(temp_dir):
         os.path.join(os.getcwd(), os.path.pardir, 'foo', 'bar'))
 
     assert x == util.abs_path(os.path.join(os.path.pardir, 'foo', 'bar'))
+
+
+def test_abs_path_with_none_path():
+    assert util.abs_path(None) is None
 
 
 def test_camelize():
@@ -340,3 +364,12 @@ def test_underscore():
     assert 'foo' == util.underscore('Foo')
     assert 'foo_bar' == util.underscore('FooBar')
     assert 'foo_bar_baz' == util.underscore('FooBarBaz')
+
+
+def test_merge_dicts():
+    # example taken from python-anyconfig/anyconfig/__init__.py
+    a = {'b': [{'c': 0}, {'c': 2}], 'd': {'e': 'aaa', 'f': 3}}
+    b = {'a': 1, 'b': [{'c': 3}], 'd': {'e': 'bbb'}}
+    x = {'a': 1, 'b': [{'c': 3}], 'd': {'e': "bbb", 'f': 3}}
+
+    assert x == util.merge_dicts(a, b)

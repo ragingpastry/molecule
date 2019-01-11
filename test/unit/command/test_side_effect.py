@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -18,13 +18,16 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 
+import os
+
 import pytest
 
+from molecule import util
 from molecule.command import side_effect
 
 
 @pytest.fixture
-def molecule_provisioner_section_with_side_effect_data():
+def _command_provisioner_section_with_side_effect_data():
     return {
         'provisioner': {
             'name': 'ansible',
@@ -35,12 +38,21 @@ def molecule_provisioner_section_with_side_effect_data():
     }
 
 
-def test_execute(mocker, molecule_provisioner_section_with_side_effect_data,
-                 patched_ansible_side_effect, patched_logger_info,
-                 config_instance):
-    config_instance.merge_dicts(
-        config_instance.config,
-        molecule_provisioner_section_with_side_effect_data)
+@pytest.fixture
+def _patched_ansible_side_effect(mocker):
+    return mocker.patch('molecule.provisioner.ansible.Ansible.side_effect')
+
+
+# NOTE(retr0h): The use of the `patched_config_validate` fixture, disables
+# config.Config._validate from executing.  Thus preventing odd side-effects
+# throughout patched.assert_called unit tests.
+@pytest.mark.parametrize(
+    'config_instance', ['_command_provisioner_section_with_side_effect_data'],
+    indirect=True)
+def test_execute(mocker, _patched_ansible_side_effect, patched_logger_info,
+                 patched_config_validate, config_instance):
+    pb = os.path.join(config_instance.scenario.directory, 'side_effect.yml')
+    util.write_file(pb, '')
 
     se = side_effect.SideEffect(config_instance)
     se.execute()
@@ -51,15 +63,16 @@ def test_execute(mocker, molecule_provisioner_section_with_side_effect_data,
     ]
     assert x == patched_logger_info.mock_calls
 
-    patched_ansible_side_effect.assert_called_once_with()
+    _patched_ansible_side_effect.assert_called_once_with()
 
 
 def test_execute_skips_when_playbook_not_configured(
-        patched_logger_warn, patched_ansible_side_effect, config_instance):
+        patched_logger_warn, _patched_ansible_side_effect, config_instance):
+
     se = side_effect.SideEffect(config_instance)
     se.execute()
 
     msg = 'Skipping, side effect playbook not configured.'
     patched_logger_warn.assert_called_once_with(msg)
 
-    assert not patched_ansible_side_effect.called
+    assert not _patched_ansible_side_effect.called

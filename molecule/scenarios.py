@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -75,8 +75,8 @@ class Scenarios(object):
         msg = 'Test matrix'
         LOG.info(msg)
 
-        tree = tuple(('', [(scenario.name, [(term, [])
-                                            for term in scenario.sequence])
+        tree = tuple(('', [(scenario.name, [(action, [])
+                                            for action in scenario.sequence])
                            for scenario in self.all]))
 
         tf = tree_format.format_tree(
@@ -84,7 +84,7 @@ class Scenarios(object):
             format_node=operator.itemgetter(0),
             get_children=operator.itemgetter(1))
 
-        LOG.out(tf.encode('utf-8'))
+        LOG.out(tf)
         LOG.out('')
 
     def _verify(self):
@@ -119,13 +119,13 @@ class Scenarios(object):
         {
             scenario_1: {
                 'subcommand': [
-                    'term-1',
-                    'term-2',
+                    'action-1',
+                    'action-2',
                 ],
             },
             scenario_2: {
                 'subcommand': [
-                    'term-1',
+                    'action-1',
                 ],
             },
         }

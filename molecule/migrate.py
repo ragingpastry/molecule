@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -25,8 +25,8 @@ import yaml
 
 from molecule import logger
 from molecule import util
-from molecule.model import schema
 from molecule.model import schema_v1
+from molecule.model import schema_v2
 
 LOG = logger.get_logger(__name__)
 
@@ -76,7 +76,8 @@ class Migrate(object):
 
         od = collections.OrderedDict(
             sorted(self._v2.items(), key=lambda t: t[0]))
-        schema.validate(self._to_dict(od))
+        errors = schema_v2.validate(self._to_dict(od))
+        self._check_errors(errors)
 
         return od
 
@@ -170,7 +171,8 @@ class Migrate(object):
 
     def _get_v1_config(self):
         d = util.safe_load(open(self._molecule_file))
-        schema_v1.validate(d)
+        errors = schema_v1.validate(d)
+        self._check_errors(errors)
 
         return d
 
@@ -197,3 +199,8 @@ class Migrate(object):
         })
 
         return d
+
+    def _check_errors(self, errors):
+        if errors:
+            msg = "Failed to validate.\n\n{}".format(errors)
+            util.sysexit_with_message(msg)

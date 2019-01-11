@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -80,11 +80,13 @@ class Yamllint(base.Base):
 
     @property
     def default_options(self):
-        return {}
+        return {
+            's': True,
+        }
 
     @property
     def default_env(self):
-        return self._config.merge_dicts(os.environ.copy(), self._config.env)
+        return util.merge_dicts(os.environ.copy(), self._config.env)
 
     def bake(self):
         """
@@ -126,10 +128,11 @@ class Yamllint(base.Base):
         :return: list
         """
         excludes = [
-            '.tox',
             '.git',
+            '.tox',
             '.vagrant',
-            '.molecule',
+            '.venv',
+            os.path.basename(self._config.verifier.directory),
         ]
         generators = [
             util.os_walk(self._config.project_directory, '*.yml', excludes),

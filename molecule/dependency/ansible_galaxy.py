@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -36,6 +36,12 @@ class AnsibleGalaxy(base.Base):
     Additional options can be passed to `ansible-galaxy install` through the
     options dict.  Any option set in this section will override the defaults.
 
+    .. note::
+
+        Molecule will remove any options matching '^[v]+$', and pass `-vvv`
+        to the underlying `ansible-galaxy` command when executing
+        `molecule --debug`.
+
     .. code-block:: yaml
 
         dependency:
@@ -68,7 +74,9 @@ class AnsibleGalaxy(base.Base):
 
     def __init__(self, config):
         super(AnsibleGalaxy, self).__init__(config)
-        self._ansible_galaxy_command = None
+        self._sh_command = None
+
+        self.command = 'ansible-galaxy'
 
     @property
     def default_options(self):
@@ -85,9 +93,21 @@ class AnsibleGalaxy(base.Base):
 
         return d
 
+    # NOTE(retr0h): Override the base classes' options() to handle
+    # `ansible-galaxy` one-off.
+    @property
+    def options(self):
+        o = self._config.config['dependency']['options']
+        # NOTE(retr0h): Remove verbose options added by the user while in
+        # debug.
+        if self._config.debug:
+            o = util.filter_verbose_permutation(o)
+
+        return util.merge_dicts(self.default_options, o)
+
     @property
     def default_env(self):
-        return self._config.merge_dicts(os.environ.copy(), self._config.env)
+        return util.merge_dicts(os.environ.copy(), self._config.env)
 
     def bake(self):
         """
@@ -99,7 +119,8 @@ class AnsibleGalaxy(base.Base):
         options = self.options
         verbose_flag = util.verbose_flag(options)
 
-        self._ansible_galaxy_command = sh.ansible_galaxy.bake(
+        self._sh_command = getattr(sh, self.command)
+        self._sh_command = self._sh_command.bake(
             'install',
             options,
             *verbose_flag,
@@ -118,13 +139,12 @@ class AnsibleGalaxy(base.Base):
             LOG.warn(msg)
             return
 
-        if self._ansible_galaxy_command is None:
+        if self._sh_command is None:
             self.bake()
 
         self._setup()
         try:
-            util.run_command(
-                self._ansible_galaxy_command, debug=self._config.debug)
+            util.run_command(self._sh_command, debug=self._config.debug)
             msg = 'Dependency completed successfully.'
             LOG.success(msg)
         except sh.ErrorReturnCode as e:
@@ -141,7 +161,8 @@ class AnsibleGalaxy(base.Base):
         if not os.path.isdir(role_directory):
             os.makedirs(role_directory)
 
-    def _has_requirements_file(self):
-        role_file = self.options.get('role-file')
+    def _role_file(self):
+        return self.options.get('role-file')
 
-        return role_file and os.path.isfile(role_file)
+    def _has_requirements_file(self):
+        return os.path.isfile(self._role_file())

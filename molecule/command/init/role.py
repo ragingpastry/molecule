@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -25,6 +25,7 @@ import click
 from molecule import config
 from molecule import logger
 from molecule import util
+from molecule.command import base as command_base
 from molecule.command.init import base
 
 LOG = logger.get_logger(__name__)
@@ -32,9 +33,11 @@ LOG = logger.get_logger(__name__)
 
 class Role(base.Base):
     """
-    Initialize a new role:
+    .. program:: molecule init role --role-name foo
 
-    >>> molecule init role --role-name foo
+    .. option:: molecule init role --role-name foo
+
+        Initialize a new role.
     """
 
     def __init__(self, command_args):
@@ -113,13 +116,16 @@ def role(ctx, dependency_name, driver_name, lint_name, provisioner_name,
         'lint_name': lint_name,
         'provisioner_name': provisioner_name,
         'role_name': role_name,
-        'scenario_name': 'default',
+        'scenario_name': command_base.MOLECULE_DEFAULT_SCENARIO_NAME,
         'subcommand': __name__,
         'verifier_name': verifier_name,
     }
 
+    if verifier_name == 'inspec':
+        command_args['verifier_lint_name'] = 'rubocop'
+
     if verifier_name == 'goss':
-        command_args.update({'verifier_lint_name': "'None'"})
+        command_args['verifier_lint_name'] = 'yamllint'
 
     r = Role(command_args)
     r.execute()

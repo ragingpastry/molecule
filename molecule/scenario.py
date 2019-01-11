@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -19,12 +19,12 @@
 #  DEALINGS IN THE SOFTWARE.
 
 import os
+import tempfile
 
 from molecule import logger
 from molecule import scenarios
 
 LOG = logger.get_logger(__name__)
-MOLECULE_EPHEMERAL_DIRECTORY = '.molecule'
 
 
 class Scenario(object):
@@ -47,12 +47,14 @@ class Scenario(object):
             - prepare
           check_sequence:
             - destroy
+            - dependency
             - create
             - prepare
             - converge
             - check
             - destroy
           converge_sequence:
+            - dependency
             - create
             - prepare
             - converge
@@ -92,7 +94,13 @@ class Scenario(object):
 
     @property
     def ephemeral_directory(self):
-        return ephemeral_directory(self.directory)
+        project_directory = os.path.basename(self.config.project_directory)
+        scenario_name = self.name
+        project_scenario_directory = os.path.join(
+            'molecule', project_directory, scenario_name)
+        path = ephemeral_directory(project_scenario_directory)
+
+        return ephemeral_directory(path)
 
     @property
     def check_sequence(self):
@@ -168,8 +176,11 @@ class Scenario(object):
          :return: None
          """
         if not os.path.isdir(self.ephemeral_directory):
-            os.mkdir(self.ephemeral_directory)
+            os.makedirs(self.ephemeral_directory)
 
 
 def ephemeral_directory(path):
-    return os.path.join(path, MOLECULE_EPHEMERAL_DIRECTORY)
+    d = os.getenv('MOLECULE_EPHEMERAL_DIRECTORY')
+    if d:
+        return os.path.join(tempfile.gettempdir(), d)
+    return os.path.join(tempfile.gettempdir(), path)

@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -56,8 +56,7 @@ class AnsiblePlaybook(object):
         :return: None
         """
         self.add_cli_arg('inventory', self._config.provisioner.inventory_file)
-        options = self._config.merge_dicts(self._config.provisioner.options,
-                                           self._cli)
+        options = util.merge_dicts(self._config.provisioner.options, self._cli)
         verbose_flag = util.verbose_flag(options)
         if self._playbook != self._config.provisioner.playbooks.converge:
             if options.get('become'):
@@ -73,8 +72,9 @@ class AnsiblePlaybook(object):
             _err=self._err)
 
         if self._config.ansible_args:
-            self._ansible_command = self._ansible_command.bake(
-                self._config.ansible_args)
+            if self._config.action not in ['create', 'destroy']:
+                self._ansible_command = self._ansible_command.bake(
+                    self._config.ansible_args)
 
     def execute(self):
         """

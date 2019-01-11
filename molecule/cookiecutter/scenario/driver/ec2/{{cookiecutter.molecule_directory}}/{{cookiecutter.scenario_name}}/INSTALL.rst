@@ -1,5 +1,5 @@
 *******
-Install
+Amazon Web Services driver installation guide
 *******
 
 Requirements
@@ -13,5 +13,5 @@ Install
 
 .. code-block:: bash
 
-  $ sudo pip install boto
-  $ sudo pip install boto3
+    $ sudo pip install boto
+    $ sudo pip install boto3

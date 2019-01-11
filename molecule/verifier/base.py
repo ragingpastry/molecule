@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -24,6 +24,8 @@ import abc
 
 from molecule import util
 from molecule.verifier.lint import flake8
+from molecule.verifier.lint import rubocop
+from molecule.verifier.lint import yamllint
 
 
 class Base(object):
@@ -85,20 +87,21 @@ class Base(object):
 
     @property
     def options(self):
-        return self._config.merge_dicts(
-            self.default_options, self._config.config['verifier']['options'])
+        return util.merge_dicts(self.default_options,
+                                self._config.config['verifier']['options'])
 
     @property
     def env(self):
-        return self._config.merge_dicts(self.default_env,
-                                        self._config.config['verifier']['env'])
+        return util.merge_dicts(self.default_env,
+                                self._config.config['verifier']['env'])
 
     @property
+    @util.memoize
     def lint(self):
         lint_name = self._config.config['verifier']['lint']['name']
         if lint_name == 'flake8':
             return flake8.Flake8(self._config)
-        elif lint_name == 'None':
-            return
-        else:
-            util.exit_with_invalid_section('lint', lint_name)
+        if lint_name == 'rubocop':
+            return rubocop.RuboCop(self._config)
+        if lint_name == 'yamllint':
+            return yamllint.Yamllint(self._config)

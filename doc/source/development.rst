@@ -16,7 +16,8 @@ Release Engineering
 Pre-release
 -----------
 
-* Edit the :ref:`changelog`.
+* Ensure the `GitHub Milestones`_ is complete and closed.
+* Edit the :ref:`changelog`, based on Milestone and recent commits.
 * Follow the :ref:`testing` steps.
 
 Release
@@ -31,39 +32,39 @@ Tag the release and push to github.com
 
 .. code-block:: bash
 
-    $ git tag 2.0.0
+    $ git tag 2.x.x
     $ git push --tags
 
 Upload to `PyPI`_
 ^^^^^^^^^^^^^^^^^
 
-* Install `Twine`_ using `pip`.
+* Build and upload to  `PyPI`_.
 
     .. code-block:: bash
 
-        $ pip install twine
+        $ make -f build/Makefile build
+        $ make -f build/Makefile push
+        $ make -f build/Makefile clean
 
-* Upload to  `PyPI`_.
+Docker Build
+^^^^^^^^^^^^
 
-    .. code-block:: bash
+* `Quay.io`_ automatically builds on commit and tag
 
-        $ cd /path/to/molecule
-        $ git clean -d -x -f molecule/cookiecutter/
-        $ python setup.py sdist bdist_wheel
-        $ twine upload dist/*
-        $ rm -rf build/ dist/
+.. _`quay.io`: https://quay.io/repository/ansible/molecule
 
 Post-release
 ------------
 
 * Comment/close any relevant `Issues`_.
-* Announce the release in `#molecule-users`.
+* Announce the release in ``#ansible-molecule``.
+* Announce on Google Groups: ansible-announce, molecule-users.
 
 Roadmap
 =======
 
-* See `Issues`_ on Github.com.
+* From Molecule v2.20 `GitHub Milestones`_ are used to track each release
 
-.. _`PyPI`: https://pypi.python.org/pypi/molecule
-.. _`ISSUES`: https://github.com/metacloud/molecule/issues
-.. _`Twine`: https://pypi.python.org/pypi/twine
+.. _`PyPI`: https://pypi.org/project/molecule
+.. _`GitHub Milestones`: https://github.com/ansible/molecule/milestones
+.. _`Issues`: https://github.com/ansible/molecule/issues

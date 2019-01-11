@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -42,16 +42,10 @@ class Openstack(base.Base):
           name: openstack
         platforms:
           - name: instance
-            image: "{{ item.image }}"
-            flavor: "{{ item.flavor }}"
-            security_groups: "{{ security_group_name }}"
-            key_name: "{{ keypair_name }}"
-            nics:
-              - net-id: "{{ openstack_networks[0]['id'] }}"
 
     .. code-block:: bash
 
-        $ sudo pip install shade
+        $ pip install molecule[openstack]
 
     Change the options passed to the ssh client.
 
@@ -75,7 +69,6 @@ class Openstack(base.Base):
           name: openstack
           safe_files:
             - foo
-            - .molecule/bar
 
     .. _`OpenStack`: https://www.openstack.org
     """  # noqa
@@ -115,8 +108,7 @@ class Openstack(base.Base):
     def login_options(self, instance_name):
         d = {'instance': instance_name}
 
-        return self._config.merge_dicts(
-            d, self._get_instance_config(instance_name))
+        return util.merge_dicts(d, self._get_instance_config(instance_name))
 
     def ansible_connection_options(self, instance_name):
         try:

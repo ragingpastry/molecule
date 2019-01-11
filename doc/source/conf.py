@@ -36,8 +36,10 @@ sys.path.insert(0, os.path.abspath('../..'))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
     'sphinx.ext.coverage',
+    'sphinx.ext.doctest',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'alabaster',
 ]
@@ -58,8 +60,28 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Molecule'
-copyright = u' %s, Cisco Systems, Inc.' % datetime.date.today().year
+copyright = u' %s, Red Hat Inc.' % datetime.date.today().year
 author = u'AUTHORS.rst'
+
+github_url = 'https://github.com'
+github_repo_org = 'ansible'
+github_repo_name = 'molecule'
+github_repo_slug = f'{github_repo_org}/{github_repo_name}'
+github_repo_url = f'{github_url}/{github_repo_slug}'
+
+extlinks = {
+    'issue': (f'{github_repo_url}/issues/%s', '#'),
+    'pr': (f'{github_repo_url}/pull/%s', 'PR #'),
+    'commit': (f'{github_repo_url}/commit/%s', ''),
+    'gh': (f'{github_url}/%s', 'GitHub: '),
+}
+
+intersphinx_mapping = {
+    'ansible': ('https://docs.ansible.com/ansible/devel/', None),
+    'pip': ('https://pip.pypa.io/en/latest/', None),
+    'python': ('https://docs.python.org/3', None),
+    'python2': ('https://docs.python.org/2', None),
+}
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -129,13 +151,19 @@ html_theme = 'alabaster'
 # html_theme_options = {}
 html_theme_options = {
     'logo': 'logo.png',
-    'github_user': 'metacloud',
-    'github_repo': 'molecule',
+    'github_user': github_repo_org,
+    'github_repo': github_repo_name,
     'github_button': True,
-    'travis_button': False,
+    'github_banner': True,
+    'github_type': 'star',
+    'github_count': True,
+    'badge_branch': 'master',
+    'travis_button': True,
+    'codecov_button': True,
+    'analytics_id': 'UA-128382387-1',
     'show_powered_by': False,
     'extra_nav_links': {
-        'View on github': 'https://github.com/metacloud/molecule',
+        'View on GitHub': github_repo_url,
     },
 }
 

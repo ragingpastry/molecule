@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -45,7 +45,7 @@ class Azure(base.Base):
 
     .. code-block:: bash
 
-        $ sudo pip install 'ansible[azure]'
+        $ pip install 'molecule[azure]'
 
     Change the options passed to the ssh client.
 
@@ -69,7 +69,6 @@ class Azure(base.Base):
           name: azure
           safe_files:
             - foo
-            - .molecule/bar
 
     .. _`Azure`: https://azure.microsoft.com
     """  # noqa
@@ -109,8 +108,7 @@ class Azure(base.Base):
     def login_options(self, instance_name):
         d = {'instance': instance_name}
 
-        return self._config.merge_dicts(
-            d, self._get_instance_config(instance_name))
+        return util.merge_dicts(d, self._get_instance_config(instance_name))
 
     def ansible_connection_options(self, instance_name):
         try:

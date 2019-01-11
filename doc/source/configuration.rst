@@ -1,9 +1,6 @@
 Configuration
 =============
 
-Config
-------
-
 .. autoclass:: molecule.config.Config()
    :undoc-members:
 
@@ -29,6 +26,12 @@ Gilt
 ^^^^
 
 .. autoclass:: molecule.dependency.gilt.Gilt()
+   :undoc-members:
+
+Shell
+^^^^^
+
+.. autoclass:: molecule.dependency.shell.Shell()
    :undoc-members:
 
 Driver
@@ -72,25 +75,25 @@ Docker
 EC2
 ^^^
 
-.. autoclass:: molecule.driver.ec2.Ec2()
+.. autoclass:: molecule.driver.ec2.EC2()
    :undoc-members:
 
 GCE
 ^^^
 
-.. autoclass:: molecule.driver.gce.Gce()
+.. autoclass:: molecule.driver.gce.GCE()
    :undoc-members:
 
 LXC
 ^^^
 
-.. autoclass:: molecule.driver.lxc.Lxc()
+.. autoclass:: molecule.driver.lxc.LXC()
    :undoc-members:
 
 LXD
 ^^^
 
-.. autoclass:: molecule.driver.lxd.Lxd()
+.. autoclass:: molecule.driver.lxd.LXD()
    :undoc-members:
 
 Openstack
@@ -118,6 +121,7 @@ Supported Providers:
 * VirtualBox (default)
 * VMware (vmware_fusion, vmware_workstation and vmware_desktop)
 * Parallels
+* Libvirt (requires vagrant-libvirt plugin)
 
 Create instances.
 
@@ -147,6 +151,22 @@ Destroy instances.
             instance_name: "{{ item }}"
             platform_box: ubuntu/trusty64
             state: destroy
+          with_items:
+            - instance-1
+            - instance-2
+
+Halt instances (shutdown without destroy).
+
+.. code-block:: yaml
+
+    - hosts: localhost
+      connection: local
+      tasks:
+        - name: Halt instances
+          molecule_vagrant:
+            instance_name: "{{ item }}"
+            platform_box: ubuntu/trusty64
+            state: halt
           with_items:
             - instance-1
             - instance-2
@@ -193,6 +213,7 @@ Create instances with additional provider options.
               - "customize ['modifyvm', :id, '--cpuexecutioncap', '50']"
             provider_options:
               gui: true
+            provision: true
             state: up
           with_items:
             - instance-1
@@ -211,6 +232,29 @@ Create instances with additional instance options.
             platform_box: ubuntu/trusty64
             instance_raw_config_args:
               - "vm.network 'forwarded_port', guest: 80, host: 8080"
+            state: up
+          with_items:
+            - instance-1
+            - instance-2
+
+Create instances on a remote Libvirt node using default create/destroy
+templates.
+
+.. code-block:: yaml
+
+    - hosts: localhost
+      connection: local
+      tasks:
+        - name: Create instances
+          molecule_vagrant:
+            instance_name: "{{ item }}"
+            platform_box: ubuntu/trusty64
+            provider_raw_config_args:
+              - 'host = "remote-node.example.com"'
+              - 'connect_via_ssh = "True"'
+              - 'username = "sshuser"'
+              - 'driver = "kvm"'
+              - 'cpu_mode = "host-passthrough"'
             state: up
           with_items:
             - instance-1
@@ -263,18 +307,6 @@ configuration syntax.
 .. autoclass:: molecule.scenario.Scenario()
    :undoc-members:
 
-Scenarios
----------
-
-.. autoclass:: molecule.scenarios.Scenarios()
-   :undoc-members:
-
-State
------
-
-.. autoclass:: molecule.state.State()
-   :undoc-members:
-
 Verifier
 --------
 
@@ -291,6 +323,18 @@ Lint
 
 The Goss verifier does not utilize a linter.
 
+Inspec
+^^^^^^
+
+.. autoclass:: molecule.verifier.inspec.Inspec()
+   :undoc-members:
+
+Lint
+....
+
+.. autoclass:: molecule.verifier.lint.rubocop.RuboCop()
+   :undoc-members:
+
 Testinfra
 ^^^^^^^^^
 
@@ -301,8 +345,6 @@ Testinfra
 
 Lint
 ....
-
-Molecule handles test linting by invoking configurable linters.
 
 .. autoclass:: molecule.verifier.lint.flake8.Flake8()
    :undoc-members:

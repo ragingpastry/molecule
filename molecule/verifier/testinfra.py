@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -18,6 +18,7 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 
+import glob
 import os
 
 import sh
@@ -35,6 +36,11 @@ class Testinfra(base.Base):
 
     Additional options can be passed to `testinfra` through the options
     dict.  Any option set in this section will override the defaults.
+
+    .. note::
+
+        Molecule will remove any options matching '^[v]+$', and pass `-vvv`
+        to the underlying `py.test` command when executing `molecule --debug`.
 
     .. code-block:: yaml
 
@@ -68,17 +74,17 @@ class Testinfra(base.Base):
           name: testinfra
           directory: /foo/bar/
 
-    Additional tests from another file or directory relative to the scenario
-    directory.
+    Additional tests from another file or directory relative to the scenario's
+    tests directory (supports regexp).
 
     .. code-block:: yaml
 
         verifier:
           name: testinfra
           additional_files_or_dirs:
-            - ../path/to/test_1
-            - ../path/to/test_2
-            - ../path/to/directory/
+            - ../path/to/test_1.py
+            - ../path/to/test_2.py
+            - ../path/to/directory/*
 
     .. _`Testinfra`: http://testinfra.readthedocs.io
     """
@@ -102,23 +108,45 @@ class Testinfra(base.Base):
     @property
     def default_options(self):
         d = self._config.driver.testinfra_options
+        d['p'] = 'no:cacheprovider'
         if self._config.debug:
             d['debug'] = True
+            d['vvv'] = True
         if self._config.args.get('sudo'):
             d['sudo'] = True
 
         return d
 
+    # NOTE(retr0h): Override the base classes' options() to handle
+    # `ansible-galaxy` one-off.
+    @property
+    def options(self):
+        o = self._config.config['verifier']['options']
+        # NOTE(retr0h): Remove verbose options added by the user while in
+        # debug.
+        if self._config.debug:
+            o = util.filter_verbose_permutation(o)
+
+        return util.merge_dicts(self.default_options, o)
+
     @property
     def default_env(self):
-        env = self._config.merge_dicts(os.environ.copy(), self._config.env)
-        env = self._config.merge_dicts(env, self._config.provisioner.env)
+        env = util.merge_dicts(os.environ.copy(), self._config.env)
+        env = util.merge_dicts(env, self._config.provisioner.env)
 
         return env
 
     @property
     def additional_files_or_dirs(self):
-        return self._config.config['verifier']['additional_files_or_dirs']
+        files_list = []
+        c = self._config.config
+        for f in c['verifier']['additional_files_or_dirs']:
+            glob_path = os.path.join(self._config.verifier.directory, f)
+            glob_list = glob.glob(glob_path)
+            if glob_list:
+                files_list.extend(glob_list)
+
+        return files_list
 
     def bake(self):
         """
@@ -126,6 +154,7 @@ class Testinfra(base.Base):
 
         :return: None
         """
+
         options = self.options
         verbose_flag = util.verbose_flag(options)
         args = verbose_flag + self.additional_files_or_dirs

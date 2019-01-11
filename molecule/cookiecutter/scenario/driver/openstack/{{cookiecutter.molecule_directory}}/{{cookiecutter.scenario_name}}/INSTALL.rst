@@ -1,5 +1,5 @@
 *******
-Install
+Openstack driver installation guide
 *******
 
 Requirements
@@ -13,4 +13,4 @@ Install
 
 .. code-block:: bash
 
-  $ sudo pip install shade
+    $ sudo pip install shade

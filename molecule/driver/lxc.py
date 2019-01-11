@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -24,7 +24,7 @@ from molecule.driver import base
 LOG = logger.get_logger(__name__)
 
 
-class Lxc(base.Base):
+class LXC(base.Base):
     """
     The class responsible for managing `LXC`_ containers.  `LXC`_ is `not` the
     default driver used in Molecule.
@@ -41,7 +41,7 @@ class Lxc(base.Base):
 
     .. code-block:: bash
 
-        $ sudo pip install lxc-python2
+        $ pip install molecule[lxc]
 
     Provide the files Molecule will preserve upon each subcommand execution.
 
@@ -51,13 +51,12 @@ class Lxc(base.Base):
           name: lxc
           safe_files:
             - foo
-            - .molecule/bar
 
     .. _`LXC`: https://linuxcontainers.org/lxc/introduction/
     """  # noqa
 
     def __init__(self, config):
-        super(Lxc, self).__init__(config)
+        super(LXC, self).__init__(config)
         self._name = 'lxc'
 
     @property

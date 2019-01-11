@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -40,19 +40,19 @@ class Flake8(base.Base):
 
     .. code-block:: yaml
 
-        provisioner:
-          name: ansible
+        verifier:
+          name: testinfra
           lint:
             name: flake8
             options:
               benchmark: True
 
-    The role linting can be disabled by setting `enabled` to False.
+    Test file linting can be disabled by setting `enabled` to False.
 
     .. code-block:: yaml
 
-        provisioner:
-          name: ansible
+        verifier:
+          name: testinfra
           lint:
             name: flake8
             enabled: False
@@ -61,8 +61,8 @@ class Flake8(base.Base):
 
     .. code-block:: yaml
 
-        provisioner:
-          name: ansible
+        verifier:
+          name: testinfra
           lint:
             name: flake8
             env:
@@ -89,7 +89,7 @@ class Flake8(base.Base):
 
     @property
     def default_env(self):
-        return self._config.merge_dicts(os.environ.copy(), self._config.env)
+        return util.merge_dicts(os.environ.copy(), self._config.env)
 
     def bake(self):
         """
@@ -136,7 +136,6 @@ class Flake8(base.Base):
         :return: list
         """
         return [
-            filename
-            for filename in util.os_walk(self._config.verifier.directory,
-                                         'test_*.py')
+            filename for filename in util.os_walk(
+                self._config.verifier.directory, 'test_*.py')
         ]

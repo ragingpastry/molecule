@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -46,10 +46,13 @@ class AnsibleLint(base.Base):
           lint:
             name: ansible-lint
             options:
-              excludes:
+              exclude:
                 - path/exclude1
                 - path/exclude2
+              x: ["ANSIBLE0011,ANSIBLE0012"]
               force-color: True
+
+    The `x` option has to be passed like this due to a `bug`_ in Ansible Lint.
 
     The role linting can be disabled by setting `enabled` to False.
 
@@ -72,7 +75,8 @@ class AnsibleLint(base.Base):
             env:
               FOO: bar
 
-    .. _`Ansible Lint`: https://github.com/willthames/ansible-lint
+    .. _`Ansible Lint`: https://github.com/ansible/ansible-lint
+    .. _`bug`: https://github.com/ansible/ansible-lint/issues/279
     """
 
     def __init__(self, config):
@@ -87,7 +91,11 @@ class AnsibleLint(base.Base):
 
     @property
     def default_options(self):
-        d = {'excludes': [self._config.scenario.ephemeral_directory]}
+        d = {
+            'default_exclude': [self._config.scenario.ephemeral_directory],
+            'exclude': [],
+            'x': [],
+        }
         if self._config.debug:
             d['v'] = True
 
@@ -95,8 +103,8 @@ class AnsibleLint(base.Base):
 
     @property
     def default_env(self):
-        env = self._config.merge_dicts(os.environ.copy(), self._config.env)
-        env = self._config.merge_dicts(env, self._config.provisioner.env)
+        env = util.merge_dicts(os.environ.copy(), self._config.env)
+        env = util.merge_dicts(env, self._config.provisioner.env)
 
         return env
 
@@ -108,11 +116,17 @@ class AnsibleLint(base.Base):
         :return: None
         """
         options = self.options
-        excludes = options.pop('excludes')
+        default_exclude_list = options.pop('default_exclude')
+        options_exclude_list = options.pop('exclude')
+        excludes = default_exclude_list + options_exclude_list
+        x_list = options.pop('x')
+
         exclude_args = ['--exclude={}'.format(exclude) for exclude in excludes]
+        x_args = tuple(('-x', x) for x in x_list)
         self._ansible_lint_command = sh.ansible_lint.bake(
             options,
             exclude_args,
+            sum(x_args, ()),
             self._config.provisioner.playbooks.converge,
             _env=self.env,
             _out=LOG.out,

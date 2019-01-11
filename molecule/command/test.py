@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -31,29 +31,48 @@ LOG = logger.get_logger(__name__)
 
 class Test(base.Base):
     """
-    Target the default scenario:
+    .. program:: molecule test
 
-    >>> molecule test
+    .. option:: molecule test
 
-    Target all scenarios:
+        Target the default scenario.
 
-    >>> molecule test --all
+    .. program:: molecule test --scenario-name foo
 
-    Targeting a specific scenario:
+    .. option:: molecule test --scenario-name foo
 
-    >>> molecule test --scenario-name foo
+        Targeting a specific scenario.
 
-    Targeting a specific driver:
+    .. program:: molecule test --all
 
-    >>> molecule test --driver-name foo
+    .. option:: molecule test --all
 
-    Executing with `debug`:
+        Target all scenarios.
 
-    >>> molecule --debug test
+    .. program:: molecule test --destroy=always
 
-    Always destroy instances at the conclusion of a Molecule run:
+    .. option:: molecule test --destroy=always
 
-    >>> molecule test --destroy=always
+        Always destroy instances at the conclusion of a Molecule run.
+
+    .. program:: molecule --debug test
+
+    .. option:: molecule --debug test
+
+        Executing with `debug`.
+
+    .. program:: molecule --base-config base.yml test
+
+    .. option:: molecule --base-config base.yml test
+
+        Executing with a `base-config`.
+
+    .. program:: molecule --env-file foo.yml test
+
+    .. option:: molecule --env-file foo.yml test
+
+        Load an env file to read variables from when rendering
+        molecule.yml.
     """
 
     def execute(self):
@@ -70,8 +89,9 @@ class Test(base.Base):
 @click.option(
     '--scenario-name',
     '-s',
-    default='default',
-    help='Name of the scenario to target. (default)')
+    default=base.MOLECULE_DEFAULT_SCENARIO_NAME,
+    help='Name of the scenario to target. ({})'.format(
+        base.MOLECULE_DEFAULT_SCENARIO_NAME))
 @click.option(
     '--driver-name',
     '-d',
@@ -85,9 +105,9 @@ class Test(base.Base):
 @click.option(
     '--destroy',
     type=click.Choice(['always', 'never']),
-    default='never',
+    default='always',
     help=('The destroy strategy used at the conclusion of a '
-          'Molecule run (never).'))
+          'Molecule run (always).'))
 def test(ctx, scenario_name, driver_name, __all, destroy):  # pragma: no cover
     """
     Test (lint, destroy, dependency, syntax, create, prepare, converge,
@@ -97,6 +117,7 @@ def test(ctx, scenario_name, driver_name, __all, destroy):  # pragma: no cover
     args = ctx.obj.get('args')
     subcommand = base._get_subcommand(__name__)
     command_args = {
+        'destroy': destroy,
         'subcommand': subcommand,
         'driver_name': driver_name,
     }
@@ -109,12 +130,13 @@ def test(ctx, scenario_name, driver_name, __all, destroy):  # pragma: no cover
     s.print_matrix()
     for scenario in s:
         try:
-            for term in scenario.sequence:
-                base.execute_subcommand(scenario.config, term)
+            for action in scenario.sequence:
+                scenario.config.action = action
+                base.execute_subcommand(scenario.config, action)
         except SystemExit:
             if destroy == 'always':
-                msg = ('An error occured during the test sequence.  '
-                       'Cleaning up.')
+                msg = ('An error occurred during the test sequence '
+                       "action: '{}'. Cleaning up.").format(action)
                 LOG.warn(msg)
                 base.execute_subcommand(scenario.config, 'destroy')
                 util.sysexit()

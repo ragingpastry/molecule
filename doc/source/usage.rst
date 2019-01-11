@@ -69,6 +69,17 @@ Login
 .. autoclass:: molecule.command.login.Login()
    :undoc-members:
 
+Matrix
+^^^^^^
+
+Matrix will display the subcommand's ordered list of actions, which can be
+changed in `scenario`_ configuration.
+
+.. _`scenario`: https://molecule.readthedocs.io/en/latest/configuration.html#scenario
+
+.. autoclass:: molecule.command.matrix.Matrix()
+   :undoc-members:
+
 Prepare
 ^^^^^^^
 

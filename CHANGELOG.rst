@@ -2,13 +2,390 @@
 History
 *******
 
-Molecule follows `Semantic Versioning`_.  Therefore versioning will be much
-different than previous versions of Molecule.
+Unreleased
+==========
 
-It will be safe to pin to MINOR versions of Molecule.  MINOR will add
-functionality in a backwards-compatible manner.
+* Molecule can now be called as a python module (python -m molecule). Patch by `@ssbarnea`_.
+* Add `Travis CI integration`_ and fix related test issues.
 
-.. _`Semantic Versioning`: http://semver.org
+.. _`@ssbarnea`: https://github.com/ssbarnea
+.. _`Travis CI integration`: https://travis-ci.com/ansible/molecule
+
+Important Changes
+-----------------
+
+* Project now maintained by the Ansible Team, see `Move to Red Hat`_ for details
+* Docker Container now hosted on `quay.io`_
+
+.. _`Move to Red Hat`: https://molecule.readthedocs.io/en/latest/contributing.html#move-to-red-hat
+.. _`quay.io`: https://quay.io/repository/ansible/molecule
+
+2.19
+====
+
+* Bumped testinfra to 1.16.0 due to testinfra bug.
+* Allows lowercase environment variables in the Docker scheme.
+* Removes local mode from LXD documentation.
+
+Important Changes
+-----------------
+
+Last release by :gh:`@retr0h <retr0h>`.  Subsequent releases will be made by
+the Ansible team.
+
+2.18.1
+======
+
+* Fixes #1484 - add ruby-etc apk package.
+* Fix documentation of scenario sequences.
+
+2.18
+====
+
+* Bump Goss to v0.3.6.
+* Fixes docs build, appends #egg to tox-tags url.
+* Fixes typo in base.py status docstring.
+* Adds to goss docs about linting.
+* Deprecated ansible 2.2 and 2.3 tests.
+* Bumped ansible versions to test.
+* Docs: Recommend prepare playbook for node setup.
+* Updates typo in docker section of test_platforms_section.py.
+* Adds install instructions for RuboCop.
+* Updates tox-tags url in test-requirements.txt.
+* Add support of restart_policy and restart_retries to docker driver.
+* Added TERM=xterm to docker instance env.
+* Added network_mode option to Docker container.
+* Adds pre_build_image option to Docker create playbook.
+* Remove the double `init` in the doc.
+* Expand LXD driver functionality.
+* Fixed the matrix subcommand yet again.
+
+2.17
+====
+
+* Correct .env file interpolation.
+* Fixes Tox link in docs.
+* Adds tox-tags to test-requirements.txt.
+* Expose config.project_directory as env var.
+* Update Matrix usage.rst.
+* Update ci.rst with Jenkinsfile example.
+* Support passing arbitrary keys to vm.network.
+* Pin wheel version to 0.30.0.
+* Add git to docker DIND container.
+* Added inspec download for Ubuntu 14.04.
+* Added env to docker.
+* Accept a single option to the matrix subcommand.
+* Knob to change Ansible `no_log`.
+* Bumped testinfra to 1.14.1 due to testinfra bug.
+* Remove upgrade from Dockerfile.
+* Bumped requirements.txt.
+* Corrected provider_override_args.
+* Add docker python and rubocop dependencies.
+* Added python 3.7 support.
+
+2.16
+====
+
+* Add feature for auto bumping docker image tag.
+* Fixed Docker provider not using DOCKER_HOST environmental variable.
+* Updates to the Ansible provisioning playbook for docker and vagrant for
+  missing options.
+* Documentation : dependencies on centos and docker driver clarifications.
+* Added matrix subcommand.
+* added pull: yes|no param to Docker executor.
+* Added Gitlab CI example.
+* Add information about the action which failed.
+* Support Ansible 2.6.
+* Corrected schema due to #1344.
+* Prevalidator should enforce allowed options.
+* Add support for multiple distributions to inspec verifier.
+* Update InSpec to version 2.2.20.
+* Update ansible-lint to version 3.4.23.
+* Create unique keypair to allow parallel executions with OpenStack driver.
+* Requirements update.
+* Update the Dockerfile for work with az client and rubocop.
+
+2.15
+====
+
+* Removed docker credential regexp validation.
+* Added rsync to Docker image.
+* Docker create playbooks: add tmpfs & security_opts docker_container
+  parameters.
+* Moved default scenario to a const.
+* Pre-validate Molecule special variables.
+* Added env file.
+* Corrected command syntax.
+* Delegated driver acts as managed.
+
+2.14
+====
+
+* Add pre-validation.
+* ``MOLECULE_`` special variables available in molecule.yml.
+* Log Vagrant stdout to a file in MOLECULE_EPHEMERAL_DIRECTORY.
+* Reintroduce base config merging.
+* Corrected unit tests to work with tox.
+* Add verifier mutually exclusive checking.
+* UTF-8 issue in idempotence.
+* Made prepare playbook optional.
+* Bundle common playbooks.
+* Added Goss linter.
+* Disallow verifier.options with Goss and Inspec.
+
+Important Changes
+-----------------
+
+* ``MOLECULE_`` special variables available in molecule.yml.
+* Molecule introduces a new CLI option `--base-config`, which is
+  loaded prior to each scenario's `molecule.yml`.  This allows
+  developers to specify a base config, to help reduce repetition
+  in their molecule.yml files.  The default base config is
+  ~/.config/molecule/config.yml.
+* Prepare playbook no longer needs to exist, unless using it.
+* Molecule bundles Docker and Vagrant create/destroy playbooks.
+
+2.13.1
+======
+
+* Enable Ansible 2.4 support with py36.
+
+2.13
+====
+
+* Allow the destroying of remote libvirt instances.
+* Bumped testinfra version for Ansible 2.5.1 compatibility.
+* Added RuboCop as Inspec's linter.
+* Minor fixes to Goss verifier playbook.
+* Update documentation for verify and idempotency checks.
+* Added Inspec verifier.
+* Support Void Linux when using Docker driver.
+* Converge with built in Molecule skip tags.
+* Render inventory links relative to scenario dir.
+* Disallow null provider.env values.
+* Log vagrant errors.
+* Enable py36 support for Ansible 2.5.
+* Retry downloading goss 3 times.
+* Delegated driver should report unknown on `molecule list`.
+* Correct Docker container terminal sizing.
+* Bumped Ansible 2.4 minor version in tox.
+* Add docker_host attribute to templates to allow talking to a remote
+  docker daemon.
+* Across-the-board requirements update.
+* Add parameter for Vagrant provider override.
+* Add 'halt' option to Vagrant module.
+
+Important Changes
+-----------------
+
+* Python 3.6 support.
+* Added Inspec verifier.
+* Added RuboCop linter for Inspec.
+
+Breaking Changes
+----------------
+
+* Render inventory links relative to scenario dir instead of ephemeral dir.
+  Unfortunately, this was a side effect of #1218.
+
+2.12.1
+======
+
+* Disable pytest caching plugin.
+
+Important Changes
+-----------------
+
+* No longer need to `.gitignore` the `.pytest_cache/` directory.
+
+2.12
+====
+
+* Ensure prune properly removes empty dirs.
+* Allow verify playbook to be shared.
+* Added cookiecutter tests.
+* Moved temporary files to $TMPDIR.
+* Added and tested Ansible 2.5 support.
+* Remove include tasks from driver playbooks.
+* Set `delete_fip = yes` for os_server resources.
+* Relaxed schema validation for which allows unknown keys in `molecule.yml`.
+* Corrected AnsibleLint `-x` example.
+* Added dind support and docs.
+* Exclude .venv directory from yamllint.
+* Move Molecule playbook vars into host inventory.
+* Switch functional tests to pytest.raises.
+
+Important Changes
+-----------------
+
+* Molecule writes temporary files to `$TMPDIR` hashed as
+  `molecule/$role_name/$scenario_name/`.  Temporary files are no longer
+  written to `$scenario_directory/.molecule/`.
+* No longer need to `.gitignore` the `.molecule/` directory.
+
+Breaking Changes
+----------------
+
+* Users of the Goss verifier will need to change their `verifier.yml` playbook
+  to `verify.yml`.
+
+2.11
+====
+
+* Correct verbose flag options with `--debug`.
+* Bumped Ansible 2.4 and 2.3 minor versions.
+* Reimplemented schema validation with Cerberus.
+* Bumped version of jinja2.
+* Move merge_dicts into util.
+* Forward port Molecule v1 shell dependency manager.
+* Vagrantfile cleanup.
+* Ability to log into a Docker registry.
+
+Important Changes
+-----------------
+
+* Reimplemented schema validation with Cerberus.  The Molecule file is
+  thoroughly validated.  This may result in validation errors if the
+  developer's `molecule.yml` is doing something unusual.
+
+* Cleaned up the Vagrantfile, and allow the developer to change options
+  on the base Vagrant config object.
+
+Breaking Changes
+----------------
+
+* Changed Vagrant's `molecule.yml` `raw_config_args` to
+  `provider_raw_config_args` for differentiating
+  `instance_raw_config_args`.
+
+2.10.1
+======
+
+* Correct Vagrant to automatically insert a keypair.
+* Corrected synced_folders usage.
+
+2.10
+====
+
+* Properly skipping Vagrant speedup keys in provider.
+* Allow Vagrant to automatically insert a keypair.
+* Correct molecule_vagrant.py bug where `provider_options`
+  would cause Vagrant to fail if keys from #1147 were provided.
+* Fix line length in cookie cutter README.
+
+Important Changes
+-----------------
+
+* PR #1147 reduced Vagrant create time, which disabled Vagrant from
+  automatically inserting a keypair.  Molecule's default is now changed
+  back to Vagrant's default of True, which may reduce the speed of Vagrant
+  create as fixed by #1147.
+
+2.9
+===
+
+* Bumped yamllint version.
+* Namespaced Docker registry.
+* Reduce create time with Vagrant driver.
+* Replace >>> with $ in documentation.
+* Moved prune to run after destroy.
+* Fix confusion between exposed and published ports in docker create
+  playbook.
+* Add basic support for libvirt in Vagrant driver.
+* Ignore psutil on cygwin platform.
+* Corrected ability to set multiple x options in provisioner's lint.
+* Disallow privilege_escalation via schema.
+* Validate schema for invalid ansible config options.
+* Adding provision option for Vagrant driver.
+
+Important Changes
+-----------------
+
+* These changes do not impact existing projects.  However, if one was using the
+  old syntax, and upgraded create.yml, changes would be required.  The Docker
+  driver's registry has been moved to a key named `url` under `registry`.
+
+.. code-block:: yaml
+
+    driver:
+      name: docker
+    platforms:
+      - name: instance
+        image: image_name:tag
+        registry:
+          url: registry.example.com
+
+* Fix confusion between exposed and published ports in docker create playbook.
+
+.. code-block:: yaml
+
+    driver:
+      name: docker
+    platforms:
+      - name: instance
+        image: image_name:tag
+        exposed_ports:
+          - "53/udp"
+          - "53/tcp"
+        published_ports:
+          - "0.0.0.0:8053:53/udp"
+          - "0.0.0.0:8053:53/tcp"
+
+2.8.2
+=====
+
+* Corrected ansible args.
+
+2.8.1
+=====
+
+* Reverted, release does not exist.
+
+2.8
+===
+
+* Improved quickstart video.
+* Ability to specify a custom registry to Docker driver.
+* Add a link to talk demo.
+* Corrected incorreclty fixed bug when tags provided to provisioner.
+* Corrected dependency scenario functional tests.
+* Corrected incorrectly fixed bug when providing provisioner lint options.
+* Regexp support in additional_files_or_dirs.
+* Add custom nameserver to Docker container.
+* Add network create and destroy support to Docker driver.
+
+Breaking Changes
+----------------
+
+* The verifier's `additional_files_or_dirs` option is relative to the
+  test directory, as opposed to the scenario directory.
+* The verifier's `additional_files_or_dirs` option now supports regexp.
+  Molecule will add additional files or directories, only when the glob
+  succeeds.  Directories must be appended with the regexp to match, further
+  details in the verifier's documentation.
+
+2.7
+===
+
+* Ability to set a ulimit for the Docker driver.
+* Switching log_driver from none to json-file to for compatibility with
+  Ansible 2.2.
+* Default to always destroy strategy.
+* Support linked_clone for Vagrant 2.X.
+* Bump tree-format to 0.1.2.
+* Correct starting container on Docker edge by changing log_driver to none.
+* Make psutil installation platform-dependent.
+
+2.6
+===
+
+* Path searching to check ephemeral dir first.
+* Update Goss verifier.yml.
+* Bump ansible-lint version.
+* Added example for setting Vagrant proxy settings for Linux.
+* Never destroy instances if --destroy-never requested.
+* Variable Molecule Ephemeral Directory.
+* Added systemd example.
 
 2.5
 ===
@@ -114,7 +491,7 @@ Breaking Changes
 * See Molecule v1 to v2 `Porting Guide`_.
 * Molecule no longer defaults to passing the `--become` flag to the
   `ansible-playbook` command.
-* Roles are linted with `Yamllint`_ vs v1's custom linter.
+* Roles are linted with :gh:`Yamllint <adrienverge/yamllint>` vs v1's custom linter.
 
 .. _`GCE Driver`: http://molecule.readthedocs.io/en/latest/configuration.html#gce
 .. _`EC2 Driver`: http://molecule.readthedocs.io/en/latest/configuration.html#ec2
@@ -125,7 +502,6 @@ Breaking Changes
 .. _`Porting Guide`: http://molecule.readthedocs.io/en/latest/porting.html
 .. _`Scenarios`: http://molecule.readthedocs.io/en/latest/configuration.html#scenario
 .. _`Delegated Driver`: http://molecule.readthedocs.io/en/latest/configuration.html#delegated
-.. _`Yamllint`: https://github.com/adrienverge/yamllint
 
 1.25.1
 ======
@@ -560,9 +936,7 @@ Breaking Changes
 ----------------
 
 * Existing Testinfra tests which use the Docker driver need updating as
-  described in `398`_.
-
-.. _`398`: https://github.com/metacloud/molecule/issues/398
+  described in :pr:`398`.
 
 1.8.4
 =====
@@ -629,7 +1003,7 @@ Breaking Changes
 * Added support for libvirt provider.
 * Added ``molecule check`` to check playbook syntax.
 * Testinfra parameters can now be set as vars in molecule.yml.
-* Running testinfra tests in parallel is no longer the default behavior.
+* Running testinfra tests in parallel is no longer the default behaviour.
 
 1.5.1
 =====
@@ -698,12 +1072,12 @@ Breaking Changes
 
 * Added a CLI option for the ``list`` command to make the output machine
   readable.
-* Refactored commands.py to be more conducive to dispatch from DocOpt (#76).
-* Fixed issue #82 where callback plugin path wasn't being properly merged with
+* Refactored commands.py to be more conducive to dispatch from DocOpt (:issue:`76`).
+* Fixed :issue:`82` where callback plugin path wasn't being properly merged with
   user-defined values.
-* Fixed issue #84 where ``molecule init`` would produce a molecule.yml that
+* Fixed :issue:`84` where ``molecule init`` would produce a molecule.yml that
   contained trailing whitespace.
-* Fixed issue #85 preventing user-defined serverspec directory from being used.
+* Fixed :issue:`85` preventing user-defined serverspec directory from being used.
 
 1.2.1
 =====
@@ -801,7 +1175,7 @@ Breaking Changes
 * Fixed incorrect messaging in _print_valid_providers().
 * Fixed edge case in vagrantfile template to make sure we always have default
   cpus/memory set for virtualbox instances.
-* Leveraged new config flexibility to clean up old hack for `molecule init`.
+* Leveraged new config flexibility to clean up old hack for ``molecule init``.
 * Fixed utility test for deep_merge that was failing.
 * Made print_line two different functions for stdout and stderr.
 * Updated print functions to be Python 3 ready.

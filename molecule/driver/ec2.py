@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -26,7 +26,7 @@ from molecule import util
 LOG = logger.get_logger(__name__)
 
 
-class Ec2(base.Base):
+class EC2(base.Base):
     """
     The class responsible for managing `EC2`_ instances.  `EC2`_
     is `not` the default driver used in Molecule.
@@ -42,20 +42,10 @@ class Ec2(base.Base):
           name: ec2
         platforms:
           - name: instance
-            key_name: "{{ keypair_name }}"
-            image: "{{ item.image }}"
-            instance_type: "{{ item.instance_type }}"
-            vpc_subnet_id: "{{ item.vpc_subnet_id }}"
-            group: "{{ security_group_name }}"
-            instance_tags:
-              instance: "{{ item.name }}"
-            count_tag:
-              instance: "{{ item.name }}"
 
     .. code-block:: bash
 
-        $ sudo pip install boto
-        $ sudo pip install boto3
+        $ pip install molecule[ec2]
 
     Change the options passed to the ssh client.
 
@@ -79,13 +69,12 @@ class Ec2(base.Base):
           name: ec2
           safe_files:
             - foo
-            - .molecule/bar
 
     .. _`EC2`: https://aws.amazon.com/ec2/
     """  # noqa
 
     def __init__(self, config):
-        super(Ec2, self).__init__(config)
+        super(EC2, self).__init__(config)
         self._name = 'ec2'
 
     @property
@@ -119,8 +108,7 @@ class Ec2(base.Base):
     def login_options(self, instance_name):
         d = {'instance': instance_name}
 
-        return self._config.merge_dicts(
-            d, self._get_instance_config(instance_name))
+        return util.merge_dicts(d, self._get_instance_config(instance_name))
 
     def ansible_connection_options(self, instance_name):
         try:

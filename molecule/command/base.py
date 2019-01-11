@@ -1,4 +1,4 @@
-#  Copyright (c) 2015-2017 Cisco Systems, Inc.
+#  Copyright (c) 2015-2018 Cisco Systems, Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to
@@ -20,8 +20,11 @@
 
 import abc
 import collections
+import fnmatch
 import glob
 import os
+
+import six
 
 import molecule.command
 from molecule import config
@@ -30,13 +33,14 @@ from molecule import util
 
 LOG = logger.get_logger(__name__)
 MOLECULE_GLOB = 'molecule/*/molecule.yml'
+MOLECULE_DEFAULT_SCENARIO_NAME = 'default'
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Base(object):
     """
     An abstract base class used to define the command interface.
     """
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, c):
         """
@@ -64,17 +68,16 @@ class Base(object):
             self._config.provisioner.inventory_file,
             self._config.state.state_file,
         ] + self._config.driver.safe_files
-
         files = util.os_walk(self._config.scenario.ephemeral_directory, '*')
         for f in files:
-            if all(sf not in f for sf in safe_files):
+            if not any(sf for sf in safe_files if fnmatch.fnmatch(f, sf)):
                 os.remove(f)
 
         # Remove empty directories.
         for dirpath, dirs, files in os.walk(
-                self._config.scenario.ephemeral_directory):
+                self._config.scenario.ephemeral_directory, topdown=False):
             if not dirs and not files:
-                os.rmdir(dirpath)
+                os.removedirs(dirpath)
 
     def print_info(self):
         msg = "Scenario: '{}'".format(self._config.scenario.name)
@@ -116,7 +119,8 @@ def get_configs(args, command_args, ansible_args=()):
             molecule_file=util.abs_path(c),
             args=args,
             command_args=command_args,
-            ansible_args=ansible_args, ) for c in glob.glob(MOLECULE_GLOB)
+            ansible_args=ansible_args,
+        ) for c in glob.glob(MOLECULE_GLOB)
     ]
     _verify_configs(configs)
 
