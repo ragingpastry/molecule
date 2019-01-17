@@ -168,6 +168,23 @@ class Ansible(base.Base):
           playbooks:
             prepare: prepare.yml
 
+    The cleanup playbook executes actions which bring the system back to a
+    given state prior to converge. It is executed directly before destroy.
+    Intended to be used in conjunction with `prepare` to modify external systems
+    when required. Add the following to the provisioner's `playbooks` section
+    to enable.
+
+    .. code-block:: yaml
+
+        provisioner:
+          name: ansible
+          playbooks:
+            cleanup: cleanup.yml
+
+    .. important::
+
+        This feature should be considered experimental.
+
     Environment variables.  Molecule does its best to handle common Ansible
     paths.  The defaults are as follows.
 
@@ -513,6 +530,16 @@ class Ansible(base.Base):
         return os.path.join(
             os.path.dirname(__file__), os.path.pardir, os.path.pardir,
             'molecule', 'provisioner', 'ansible')
+
+    def cleanup(self):
+        """
+        Executes `ansible-playbook` against the destroy playbook and returns
+        None.
+
+        :return: None
+        """
+        pb = self._get_ansible_playbook(self.playbooks.cleanup)
+        pb.execute()
 
     def connection_options(self, instance_name):
         d = self._config.driver.ansible_connection_options(instance_name)
